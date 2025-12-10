@@ -38,6 +38,7 @@ defmodule OpsChatWeb.Router do
     pipe_through [:browser, :require_auth]
 
     live "/chat", ChatLive
+    live "/chat/:channel", ChatLive
     live "/servers", ServersLive
   end
 

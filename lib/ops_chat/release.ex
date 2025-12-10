@@ -30,6 +30,11 @@ defmodule OpsChat.Release do
 
   defp seed_database do
     alias OpsChat.Accounts
+    alias OpsChat.Chat
+
+    # Create default channels
+    Chat.ensure_default_channels()
+    IO.puts("Default channels created")
 
     # Create admin user
     case Accounts.get_user_by_username("admin") do

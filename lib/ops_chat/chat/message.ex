@@ -1,21 +1,32 @@
 defmodule OpsChat.Chat.Message do
+  @moduledoc """
+  Message schema for chat messages in channels.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias OpsChat.Accounts.User
+  alias OpsChat.Chat.Channel
+
+  @type_values ~w(user bot system alert)
+
   schema "messages" do
     field :content, :string
-    field :type, :string, default: "user"  # user, bot, system
+    field :type, :string, default: "user"
 
-    belongs_to :user, OpsChat.Accounts.User
+    belongs_to :user, User
+    belongs_to :channel, Channel
 
     timestamps(type: :utc_datetime)
   end
 
   def changeset(message, attrs) do
     message
-    |> cast(attrs, [:content, :user_id, :type])
-    |> validate_required([:content, :user_id])
-    |> validate_inclusion(:type, ["user", "bot", "system"])
+    |> cast(attrs, [:content, :user_id, :type, :channel_id])
+    |> validate_required([:content])
+    |> validate_inclusion(:type, @type_values)
+    |> validate_length(:content, min: 1, max: 10_000)
     |> foreign_key_constraint(:user_id)
+    |> foreign_key_constraint(:channel_id)
   end
 end
