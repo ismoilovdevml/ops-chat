@@ -3,8 +3,7 @@ defmodule OpsChat.Accounts do
   The Accounts context - user management and authentication.
   """
 
-  import Ecto.Query
-  alias OpsChat.Repo
+    alias OpsChat.Repo
   alias OpsChat.Accounts.User
 
   def get_user(id), do: Repo.get(User, id)

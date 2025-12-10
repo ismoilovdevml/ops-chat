@@ -1,7 +1,7 @@
 defmodule OpsChatWeb.Router do
   use OpsChatWeb, :router
 
-  import OpsChatWeb.Plugs.Auth, only: [call: 2, require_auth: 2]
+  import OpsChatWeb.Plugs.Auth, only: [require_auth: 2]
 
   pipeline :browser do
     plug :accepts, ["html"]
