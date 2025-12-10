@@ -168,14 +168,28 @@ defmodule OpsChat.SSH do
     :ssh.close(conn)
   end
 
-  defp decode_private_key(key_content) do
+  defp decode_private_key(key_content) when is_binary(key_content) do
+    key_content = String.trim(key_content)
+
     try do
       entries = :public_key.pem_decode(key_content)
 
       case entries do
-        [{type, der, _}] ->
+        [] ->
+          {:error, :invalid_key}
+
+        [{type, der, :not_encrypted}] ->
           key = :public_key.pem_entry_decode({type, der, :not_encrypted})
           {:ok, key}
+
+        [{type, der, cipher_info}] when cipher_info != :not_encrypted ->
+          # Encrypted key - try without password (some tools handle this)
+          try do
+            key = :public_key.pem_entry_decode({type, der, cipher_info}, ~c"")
+            {:ok, key}
+          rescue
+            _ -> {:error, :encrypted_key}
+          end
 
         _ ->
           {:error, :invalid_key}
@@ -184,6 +198,8 @@ defmodule OpsChat.SSH do
       _ -> {:error, :invalid_key}
     end
   end
+
+  defp decode_private_key(_), do: {:error, :invalid_key}
 
   defp format_error(:timeout), do: "Ulanish vaqti tugadi (timeout)"
   defp format_error(:nxdomain), do: "Server topilmadi (DNS xatosi)"
@@ -199,6 +215,7 @@ defmodule OpsChat.SSH do
 
   # Key callback module for custom private keys
   defmodule KeyCallback do
+    @moduledoc false
     @behaviour :ssh_client_key_api
 
     def add_host_key(_host, _port, _key, _opts), do: :ok
@@ -207,15 +224,43 @@ defmodule OpsChat.SSH do
 
     def user_key(alg, opts) do
       key = Keyword.get(opts, :key)
-      if key && key_algorithm(key) == alg do
-        {:ok, key}
+
+      if key do
+        key_algs = key_algorithms(key)
+        if alg in key_algs do
+          {:ok, key}
+        else
+          {:error, :no_matching_key}
+        end
       else
         {:error, :no_matching_key}
       end
     end
 
-    defp key_algorithm({:RSAPrivateKey, _, _, _, _, _, _, _, _, _, _}), do: :"ssh-rsa"
-    defp key_algorithm({:ECPrivateKey, _, _, _, _, _}), do: :"ecdsa-sha2-nistp256"
-    defp key_algorithm(_), do: :unknown
+    # RSA keys
+    defp key_algorithms({:RSAPrivateKey, _, _, _, _, _, _, _, _, _, _}) do
+      [:"ssh-rsa", :"rsa-sha2-256", :"rsa-sha2-512"]
+    end
+
+    # EC keys - NIST curves
+    defp key_algorithms({:ECPrivateKey, _, _, {:namedCurve, curve}, _, _}) do
+      case curve do
+        {1, 2, 840, 10045, 3, 1, 7} -> [:"ecdsa-sha2-nistp256"]
+        {1, 3, 132, 0, 34} -> [:"ecdsa-sha2-nistp384"]
+        {1, 3, 132, 0, 35} -> [:"ecdsa-sha2-nistp521"]
+        _ -> []
+      end
+    end
+
+    defp key_algorithms({:ECPrivateKey, _, _, _, _, _}), do: [:"ecdsa-sha2-nistp256"]
+
+    # Ed25519 keys (OpenSSH format)
+    defp key_algorithms({:ed_pri, :ed25519, _, _}), do: [:"ssh-ed25519"]
+    defp key_algorithms({:ed_pub, :ed25519, _}), do: [:"ssh-ed25519"]
+
+    # DSA keys (legacy)
+    defp key_algorithms({:DSAPrivateKey, _, _, _, _, _}), do: [:"ssh-dss"]
+
+    defp key_algorithms(_), do: []
   end
 end

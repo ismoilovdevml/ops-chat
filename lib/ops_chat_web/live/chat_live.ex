@@ -131,6 +131,12 @@ defmodule OpsChatWeb.ChatLive do
               <span class="hero-server-stack w-4 h-4"></span>
               Serverlar
             </.link>
+            <%= if @current_user.role == "admin" do %>
+              <.link href={~p"/audit"} class="btn btn-ghost btn-sm">
+                <span class="hero-chart-bar w-4 h-4"></span>
+                Audit
+              </.link>
+            <% end %>
           </div>
         </header>
 

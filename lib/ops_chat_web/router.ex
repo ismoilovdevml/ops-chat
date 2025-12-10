@@ -40,6 +40,7 @@ defmodule OpsChatWeb.Router do
     live "/chat", ChatLive
     live "/chat/:channel", ChatLive
     live "/servers", ServersLive
+    live "/audit", AuditLive
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
