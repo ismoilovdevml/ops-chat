@@ -332,9 +332,10 @@ defmodule OpsChatWeb.ServersLive do
         {:noreply, put_flash(socket, :error, "Server topilmadi")}
 
       server ->
-        result = OpsChat.SSH.test_connection(server)
-        flash_type = if result =~ "muvaffaqiyatli", do: :info, else: :error
-        {:noreply, put_flash(socket, flash_type, result)}
+        case OpsChat.SSH.test_connection(server) do
+          {:ok, msg} -> {:noreply, put_flash(socket, :info, "#{name}: #{msg}")}
+          {:error, err} -> {:noreply, put_flash(socket, :error, "#{name}: #{err}")}
+        end
     end
   end
 
@@ -373,7 +374,7 @@ defmodule OpsChatWeb.ServersLive do
               {server_name, "Server topilmadi"}
 
             server ->
-              case OpsChat.SSH.execute(server, cmd) do
+              case OpsChat.SSH.execute_on_server(server, cmd) do
                 {:ok, output} -> {server_name, output}
                 {:error, reason} -> {server_name, "Xatolik: #{reason}"}
               end

@@ -60,18 +60,28 @@ defmodule OpsChat.SSH do
   # Private functions
 
   defp build_connection_opts(%Server{} = server) do
+    # Create temp SSH dir if needed to prevent Erlang SSH from failing
+    tmp_ssh_dir = "/tmp/ops_chat_ssh"
+    File.mkdir_p(tmp_ssh_dir)
+
     base_opts = [
       user: String.to_charlist(server.username),
       silently_accept_hosts: true,
       user_interaction: false,
-      connect_timeout: @timeout
+      connect_timeout: @timeout,
+      user_dir: String.to_charlist(tmp_ssh_dir)
     ]
 
     case server.auth_type do
       "password" ->
+        # Password auth
         base_opts ++ [password: String.to_charlist(server.password)]
 
       "key" ->
+        # Key auth - check for custom key or use default SSH dir
+        home = System.get_env("HOME") || "/root"
+        ssh_dir = Path.join(home, ".ssh")
+
         key_opts = if server.private_key && server.private_key != "" do
           # Custom private key provided
           case decode_private_key(server.private_key) do
@@ -79,8 +89,12 @@ defmodule OpsChat.SSH do
             _ -> []
           end
         else
-          # Use default SSH keys from ~/.ssh/
-          []
+          # Use default SSH keys from ~/.ssh/ if exists
+          if File.dir?(ssh_dir) do
+            [user_dir: String.to_charlist(ssh_dir)]
+          else
+            []
+          end
         end
         base_opts ++ key_opts
 
@@ -92,9 +106,15 @@ defmodule OpsChat.SSH do
   defp connect(host, port, opts) do
     host_charlist = String.to_charlist(host)
 
-    case :ssh.connect(host_charlist, port, opts, @timeout) do
-      {:ok, conn} -> {:ok, conn}
-      {:error, reason} -> {:error, reason}
+    try do
+      case :ssh.connect(host_charlist, port, opts, @timeout) do
+        {:ok, conn} -> {:ok, conn}
+        {:error, reason} -> {:error, reason}
+      end
+    catch
+      :error, {:badmatch, {:error, reason}} -> {:error, {:badmatch, {:error, reason}}}
+      :error, reason -> {:error, reason}
+      :exit, reason -> {:error, {:exit, reason}}
     end
   end
 
@@ -112,7 +132,9 @@ defmodule OpsChat.SSH do
   defp collect_response(conn, channel, acc) do
     receive do
       {:ssh_cm, ^conn, {:data, ^channel, _type, data}} ->
-        collect_response(conn, channel, acc <> List.to_string(data))
+        # Handle both charlist and binary data
+        str_data = to_string_safe(data)
+        collect_response(conn, channel, acc <> str_data)
 
       {:ssh_cm, ^conn, {:eof, ^channel}} ->
         collect_response(conn, channel, acc)
@@ -127,6 +149,10 @@ defmodule OpsChat.SSH do
         {:error, :timeout}
     end
   end
+
+  defp to_string_safe(data) when is_list(data), do: List.to_string(data)
+  defp to_string_safe(data) when is_binary(data), do: data
+  defp to_string_safe(data), do: inspect(data)
 
   defp collect_response_with_status(conn, channel, acc, _status) do
     receive do
@@ -163,7 +189,11 @@ defmodule OpsChat.SSH do
   defp format_error(:nxdomain), do: "Server topilmadi (DNS xatosi)"
   defp format_error(:econnrefused), do: "Ulanish rad etildi"
   defp format_error(:ehostunreach), do: "Serverga yetib bo'lmadi"
+  defp format_error(:eacces), do: "SSH kalit fayliga kirishga ruxsat yo'q"
+  defp format_error({:badmatch, {:error, :eacces}}), do: "SSH kalit fayliga kirishga ruxsat yo'q (~/.ssh/)"
+  defp format_error({:badmatch, {:error, reason}}), do: "Autentifikatsiya xatosi: #{inspect(reason)}"
   defp format_error({:badmatch, _}), do: "Autentifikatsiya xatosi"
+  defp format_error({:options, {:user_dir, _}}), do: "SSH kalit katalogi topilmadi (~/.ssh/)"
   defp format_error(reason) when is_binary(reason), do: reason
   defp format_error(reason), do: inspect(reason)
 
