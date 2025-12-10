@@ -129,9 +129,7 @@ defmodule OpsChatWeb.ServersLive do
                     <textarea
                       name="private_key"
                       class="textarea textarea-bordered font-mono text-sm h-48"
-                      placeholder="-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAA...
------END OPENSSH PRIVATE KEY-----"
+                      placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;b3BlbnNzaC1rZXktdjEAAAAA...&#10;-----END OPENSSH PRIVATE KEY-----"
                     ><%= @form[:private_key].value %></textarea>
                     <label class="label">
                       <span class="label-text-alt text-base-content/50">
