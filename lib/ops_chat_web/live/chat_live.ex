@@ -1,9 +1,9 @@
 defmodule OpsChatWeb.ChatLive do
   use OpsChatWeb, :live_view
 
-  alias OpsChat.Chat
   alias OpsChat.Accounts
   alias OpsChat.Bot
+  alias OpsChat.Chat
 
   @impl true
   def mount(_params, session, socket) do
@@ -63,47 +63,52 @@ defmodule OpsChatWeb.ChatLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col h-screen bg-gray-900">
+    <div class="flex flex-col h-screen bg-base-300" data-theme="terminal">
       <!-- Header -->
-      <header class="bg-gray-800 border-b border-gray-700 px-4 py-3 flex justify-between items-center">
-        <div class="flex items-center gap-3">
-          <span class="text-green-400 font-bold text-xl">OpsChat</span>
-          <span class="text-gray-500 text-sm">DevOps Command Center</span>
+      <header class="navbar bg-base-200 border-b border-base-content/10">
+        <div class="flex-1">
+          <span class="text-success font-bold text-xl">🖥️ OpsChat</span>
+          <span class="text-base-content/50 text-sm ml-2">DevOps Command Center</span>
         </div>
-        <div class="flex items-center gap-4">
-          <span class="text-gray-400">
-            <span class="text-green-400"><%= @current_user.username %></span>
-            <span class="text-gray-600 text-sm">(<%= @current_user.role %>)</span>
-          </span>
-          <.link href={~p"/logout"} method="delete" class="text-red-400 hover:text-red-300 text-sm">
-            Chiqish
+        <div class="flex-none gap-2">
+          <.link href={~p"/servers"} class="btn btn-ghost btn-sm">
+            📡 Serverlar
           </.link>
+          <div class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-ghost">
+              <span class="text-success"><%= @current_user.username %></span>
+              <span class="badge badge-sm"><%= @current_user.role %></span>
+            </div>
+            <ul tabindex="0" class="dropdown-content menu bg-base-200 rounded-box z-1 w-52 p-2 shadow">
+              <li>
+                <.link href={~p"/logout"} method="delete" class="text-error">
+                  Chiqish
+                </.link>
+              </li>
+            </ul>
+          </div>
         </div>
       </header>
 
       <!-- Messages -->
       <div class="flex-1 overflow-y-auto p-4 space-y-3" id="messages" phx-hook="ScrollBottom">
         <%= for message <- @messages do %>
-          <div class={"flex #{message_alignment(message.type)}"}>
-            <div class={"max-w-2xl rounded-lg px-4 py-2 #{message_style(message.type)}"}>
-              <div class="flex items-center gap-2 mb-1">
-                <span class={"font-semibold text-sm #{username_color(message.type)}"}>
-                  <%= if message.type == "bot", do: "Bot", else: message.user.username %>
-                </span>
-                <span class="text-gray-500 text-xs">
-                  <%= format_time(message.inserted_at) %>
-                </span>
-              </div>
-              <div class={"whitespace-pre-wrap #{content_style(message.type)}"}>
-                <%= message.content %>
-              </div>
+          <div class={"chat #{chat_position(message.type)}"}>
+            <div class="chat-header">
+              <span class={username_color(message.type)}>
+                <%= if message.type == "bot", do: "🤖 Bot", else: message.user.username %>
+              </span>
+              <time class="text-xs opacity-50 ml-1"><%= format_time(message.inserted_at) %></time>
+            </div>
+            <div class={"chat-bubble #{bubble_style(message.type)}"}>
+              <pre class="whitespace-pre-wrap font-mono text-sm"><%= message.content %></pre>
             </div>
           </div>
         <% end %>
       </div>
 
       <!-- Input -->
-      <div class="bg-gray-800 border-t border-gray-700 p-4">
+      <div class="bg-base-200 border-t border-base-content/10 p-4">
         <form phx-submit="send_message" class="flex gap-3">
           <input
             type="text"
@@ -111,37 +116,31 @@ defmodule OpsChatWeb.ChatLive do
             value={@message_input}
             placeholder="Xabar yozing yoki /help buyrug'ini kiriting..."
             autocomplete="off"
-            class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+            class="input input-bordered flex-1"
           />
-          <button
-            type="submit"
-            class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-          >
+          <button type="submit" class="btn btn-success">
             Yuborish
           </button>
         </form>
-        <div class="mt-2 text-gray-500 text-xs">
-          Buyruqlar: /help, /status, /disk, /memory, /uptime, /logs [service]
+        <div class="mt-2 text-base-content/50 text-xs">
+          /help - barcha buyruqlar | /servers - serverlar | /ssh add web1 root@192.168.1.10 - server qo'shish
         </div>
       </div>
     </div>
     """
   end
 
-  defp message_alignment("bot"), do: "justify-start"
-  defp message_alignment("system"), do: "justify-center"
-  defp message_alignment(_), do: "justify-end"
+  defp chat_position("bot"), do: "chat-start"
+  defp chat_position("system"), do: "chat-start"
+  defp chat_position(_), do: "chat-end"
 
-  defp message_style("bot"), do: "bg-gray-700 border border-gray-600"
-  defp message_style("system"), do: "bg-yellow-900/30 border border-yellow-700/50"
-  defp message_style(_), do: "bg-green-900/30 border border-green-700/50"
+  defp bubble_style("bot"), do: "chat-bubble-info"
+  defp bubble_style("system"), do: "chat-bubble-warning"
+  defp bubble_style(_), do: "chat-bubble-success"
 
-  defp username_color("bot"), do: "text-blue-400"
-  defp username_color("system"), do: "text-yellow-400"
-  defp username_color(_), do: "text-green-400"
-
-  defp content_style("bot"), do: "text-gray-200 font-mono text-sm"
-  defp content_style(_), do: "text-gray-200"
+  defp username_color("bot"), do: "text-info"
+  defp username_color("system"), do: "text-warning"
+  defp username_color(_), do: "text-success"
 
   defp format_time(datetime) do
     Calendar.strftime(datetime, "%H:%M")

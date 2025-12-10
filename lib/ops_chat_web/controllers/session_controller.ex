@@ -4,8 +4,8 @@ defmodule OpsChatWeb.SessionController do
   alias OpsChat.Accounts
   alias OpsChatWeb.Plugs.Auth
 
-  def new(conn, _params) do
-    render(conn, :new)
+  def login(conn, _params) do
+    render(conn, :login)
   end
 
   def create(conn, %{"user" => %{"username" => username, "password" => password}}) do
@@ -14,19 +14,19 @@ defmodule OpsChatWeb.SessionController do
         conn
         |> Auth.login(user)
         |> put_flash(:info, "Xush kelibsiz, #{user.username}!")
-        |> redirect(to: "/chat")
+        |> redirect(to: ~p"/chat")
 
       {:error, _reason} ->
         conn
         |> put_flash(:error, "Login yoki parol xato")
-        |> render(:new)
+        |> render(:login)
     end
   end
 
-  def delete(conn, _params) do
+  def logout(conn, _params) do
     conn
     |> Auth.logout()
     |> put_flash(:info, "Chiqish muvaffaqiyatli")
-    |> redirect(to: "/login")
+    |> redirect(to: ~p"/login")
   end
 end

@@ -28,9 +28,9 @@ defmodule OpsChatWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
-    get "/login", SessionController, :new
+    get "/login", SessionController, :login
     post "/login", SessionController, :create
-    delete "/logout", SessionController, :delete
+    delete "/logout", SessionController, :logout
   end
 
   # Protected routes
@@ -38,6 +38,7 @@ defmodule OpsChatWeb.Router do
     pipe_through [:browser, :require_auth]
 
     live "/chat", ChatLive
+    live "/servers", ServersLive
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

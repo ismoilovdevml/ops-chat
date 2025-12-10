@@ -1,102 +1,45 @@
 defmodule OpsChat.Permissions do
   @moduledoc """
   Role-based access control for bot commands.
-
-  Roles:
-  - admin: Full access to all commands
-  - user: Read-only commands (status, logs, etc.)
   """
 
-  # Commands that require admin role
-  @admin_commands [
-    "/restart",
-    "/stop",
-    "/start",
-    "/kill",
-    "/ssh add",
-    "/ssh remove",
-    "/ssh delete",
-    "/exec",
-    "/run"
-  ]
+  @admin_commands ~w(/restart /stop /start /kill /exec /run)
+  @admin_prefixes ["/ssh add", "/ssh remove", "/ssh delete"]
 
-  # Commands available to all users
-  @user_commands [
-    "/help",
-    "/status",
-    "/uptime",
-    "/disk",
-    "/memory",
-    "/cpu",
-    "/logs",
-    "/ps",
-    "/network",
-    "/who",
-    "/ssh list",
-    "/ssh test",
-    "/servers"
-  ]
+  @user_commands ~w(/help /status /uptime /disk /memory /cpu /logs /ps /network /who /servers)
+  @user_prefixes ["/ssh list", "/ssh test", "/r ", "/rstatus", "/rdisk", "/rmemory", "/rlogs"]
 
-  @doc """
-  Check if user has permission to execute a command.
-  """
   def can_execute?(user, command) do
-    role = user.role || "user"
-    cmd = extract_command(command)
-
-    cond do
-      role == "admin" ->
-        true
-
-      is_admin_command?(cmd) ->
-        false
-
-      true ->
-        true
+    case user.role do
+      "admin" -> true
+      _ -> not admin_command?(command)
     end
   end
 
-  @doc """
-  Get list of commands available for a role.
-  """
-  def available_commands(role) do
-    case role do
-      "admin" -> @admin_commands ++ @user_commands
-      _ -> @user_commands
-    end
+  def admin_command?(command) do
+    cmd = normalize_command(command)
+
+    Enum.any?(@admin_commands, &(cmd == &1)) or
+      Enum.any?(@admin_prefixes, &String.starts_with?(cmd, &1))
   end
 
-  @doc """
-  Check if a command requires admin privileges.
-  """
-  def is_admin_command?(command) do
-    cmd = extract_command(command)
-    Enum.any?(@admin_commands, fn admin_cmd ->
-      String.starts_with?(cmd, admin_cmd)
-    end)
-  end
+  def available_commands("admin"), do: @admin_commands ++ @user_commands
+  def available_commands(_), do: @user_commands
 
-  @doc """
-  Get permission denied message.
-  """
   def denied_message(command) do
     """
-    Ruxsat berilmagan!
+    ⛔ Ruxsat berilmagan!
 
-    '#{extract_command(command)}' buyrug'i faqat admin uchun.
-    Sizning rolingiz: user
-
-    Sizga ruxsat berilgan buyruqlar: /help
+    '#{normalize_command(command)}' buyrug'i faqat admin uchun.
+    Ruxsat berilgan buyruqlar uchun: /help
     """
   end
 
-  # Extract the command part (e.g., "/ssh add" from "/ssh add server1 ...")
-  defp extract_command(command) do
+  defp normalize_command(command) do
     command
     |> String.trim()
-    |> String.split(" ")
+    |> String.split(" ", parts: 3)
     |> Enum.take(2)
     |> Enum.join(" ")
-    |> String.trim()
   end
 end
