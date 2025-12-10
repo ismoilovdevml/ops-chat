@@ -35,7 +35,7 @@ defmodule OpsChatWeb.ServersLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-300 p-4" data-theme="terminal">
+    <div class="min-h-screen bg-base-300 p-4" data-theme="opschat">
       <div class="container mx-auto max-w-6xl">
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">

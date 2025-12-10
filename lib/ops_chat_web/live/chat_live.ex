@@ -63,7 +63,7 @@ defmodule OpsChatWeb.ChatLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col h-screen bg-base-300" data-theme="terminal">
+    <div class="flex flex-col h-screen bg-base-300" data-theme="opschat">
       <!-- Header -->
       <header class="navbar bg-base-200 border-b border-base-content/10">
         <div class="flex-1">
@@ -101,7 +101,7 @@ defmodule OpsChatWeb.ChatLive do
               <time class="text-xs opacity-50 ml-1"><%= format_time(message.inserted_at) %></time>
             </div>
             <div class={"chat-bubble #{bubble_style(message.type)}"}>
-              <pre class="whitespace-pre-wrap font-mono text-sm"><%= message.content %></pre>
+              <pre class={"whitespace-pre-wrap text-sm #{if message.type == "bot", do: "font-mono", else: ""}"}><%= message.content %></pre>
             </div>
           </div>
         <% end %>
@@ -134,9 +134,9 @@ defmodule OpsChatWeb.ChatLive do
   defp chat_position("system"), do: "chat-start"
   defp chat_position(_), do: "chat-end"
 
-  defp bubble_style("bot"), do: "chat-bubble-info"
+  defp bubble_style("bot"), do: "bg-neutral text-neutral-content"
   defp bubble_style("system"), do: "chat-bubble-warning"
-  defp bubble_style(_), do: "chat-bubble-success"
+  defp bubble_style(_), do: "chat-bubble-primary"
 
   defp username_color("bot"), do: "text-info"
   defp username_color("system"), do: "text-warning"
