@@ -40,6 +40,7 @@ defmodule OpsChatWeb.Router do
     live "/chat", ChatLive
     live "/chat/:channel", ChatLive
     live "/servers", ServersLive
+    live "/files", FilesLive
     live "/audit", AuditLive
   end
 

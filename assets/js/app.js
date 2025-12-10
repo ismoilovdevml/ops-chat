@@ -51,6 +51,44 @@ const Hooks = {
           input.focus()
         }
       })
+      this.handleEvent("copy-to-clipboard", ({text}) => {
+        navigator.clipboard.writeText(text).then(() => {
+          // Could show a toast notification here
+        })
+      })
+    }
+  },
+  ContextMenu: {
+    mounted() {
+      this.el.addEventListener("contextmenu", (e) => {
+        e.preventDefault()
+        const messageId = this.el.dataset.messageId
+        const messageType = this.el.dataset.messageType
+        if (messageId) {
+          this.pushEvent("show_context_menu", {
+            id: messageId,
+            type: messageType,
+            x: e.clientX,
+            y: e.clientY
+          })
+        }
+      })
+    }
+  },
+  FileEditor: {
+    mounted() {
+      // Listen for save event
+      this.handleEvent("save-file", () => {
+        this.pushEvent("save_file_content", { content: this.el.value })
+      })
+
+      // Also handle Ctrl+S
+      this.el.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+          e.preventDefault()
+          this.pushEvent("save_file_content", { content: this.el.value })
+        }
+      })
     }
   }
 }

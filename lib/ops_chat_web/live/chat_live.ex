@@ -1,11 +1,12 @@
 defmodule OpsChatWeb.ChatLive do
   @moduledoc """
-  Discord-style chat with channels sidebar and message actions.
+  Discord-style chat with channels sidebar, context menu, and message actions.
   """
   use OpsChatWeb, :live_view
 
   alias OpsChat.Bot
   alias OpsChat.Chat
+  alias OpsChatWeb.Icons
 
   @impl true
   def mount(%{"channel" => channel_slug}, session, socket) do
@@ -39,7 +40,9 @@ defmodule OpsChatWeb.ChatLive do
        |> assign(:messages, messages)
        |> assign(:show_channel_form, false)
        |> assign(:editing_message_id, nil)
-       |> assign(:edit_content, "")}
+       |> assign(:edit_content, "")
+       |> assign(:context_menu, nil)
+       |> assign(:reply_to, nil)}
     else
       {:ok, redirect(socket, to: ~p"/login")}
     end
@@ -55,12 +58,12 @@ defmodule OpsChatWeb.ChatLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex h-screen bg-base-200" data-theme="opschat">
+    <div class="flex h-screen bg-base-200" data-theme="opschat" phx-click="close_context_menu">
       <!-- Sidebar -->
       <aside class="w-64 bg-base-300 flex flex-col border-r border-base-content/10">
         <div class="p-4 border-b border-base-content/10">
           <h1 class="text-xl font-bold text-primary flex items-center gap-2">
-            🖥️ OpsChat
+            <Icons.icon name="server" class="w-6 h-6" /> OpsChat
           </h1>
           <p class="text-xs text-base-content/50 mt-1">DevOps Command Center</p>
         </div>
@@ -70,7 +73,9 @@ defmodule OpsChatWeb.ChatLive do
             <div class="flex items-center justify-between px-2 mb-1">
               <span class="text-xs font-semibold text-base-content/50 uppercase">Kanallar</span>
               <%= if @current_user.role == "admin" do %>
-                <button phx-click="toggle_channel_form" class="btn btn-ghost btn-xs">➕</button>
+                <button phx-click="toggle_channel_form" class="btn btn-ghost btn-xs">
+                  <Icons.icon name="plus" class="w-4 h-4" />
+                </button>
               <% end %>
             </div>
             <%= for channel <- Enum.filter(@channels, &(&1.type in ["general", "custom"])) do %>
@@ -104,7 +109,7 @@ defmodule OpsChatWeb.ChatLive do
               </div>
             </div>
             <.link href={~p"/logout"} method="delete" class="btn btn-ghost btn-xs" title="Chiqish">
-              🚪
+              <Icons.icon name="logout" class="w-4 h-4" />
             </.link>
           </div>
         </div>
@@ -124,15 +129,38 @@ defmodule OpsChatWeb.ChatLive do
           </div>
           <div class="flex items-center gap-2">
             <.link href={~p"/servers"} class="btn btn-ghost btn-sm gap-1">
-              🖥️ <span class="hidden sm:inline">Serverlar</span>
+              <Icons.icon name="server" class="w-4 h-4" />
+              <span class="hidden sm:inline">Serverlar</span>
+            </.link>
+            <.link href={~p"/files"} class="btn btn-ghost btn-sm gap-1">
+              <Icons.icon name="folder" class="w-4 h-4" />
+              <span class="hidden sm:inline">Fayllar</span>
             </.link>
             <%= if @current_user.role == "admin" do %>
               <.link href={~p"/audit"} class="btn btn-ghost btn-sm gap-1">
-                📊 <span class="hidden sm:inline">Audit</span>
+                <Icons.icon name="chart" class="w-4 h-4" />
+                <span class="hidden sm:inline">Audit</span>
               </.link>
             <% end %>
           </div>
         </header>
+        
+    <!-- Reply indicator -->
+        <%= if @reply_to do %>
+          <div class="px-4 py-2 bg-base-200 border-b border-base-content/10 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-sm">
+              <Icons.icon name="reply" class="w-4 h-4 text-primary" />
+              <span class="text-base-content/60">Javob:</span>
+              <span class="font-medium">{@reply_to.user && @reply_to.user.username}</span>
+              <span class="text-base-content/50 truncate max-w-xs">
+                {String.slice(@reply_to.content, 0, 50)}
+              </span>
+            </div>
+            <button phx-click="cancel_reply" class="btn btn-ghost btn-xs">
+              <Icons.icon name="x" class="w-4 h-4" />
+            </button>
+          </div>
+        <% end %>
         
     <!-- Messages -->
         <div
@@ -164,6 +192,11 @@ defmodule OpsChatWeb.ChatLive do
           <% end %>
         </div>
         
+    <!-- Context Menu -->
+        <%= if @context_menu do %>
+          <.context_menu menu={@context_menu} current_user={@current_user} />
+        <% end %>
+        
     <!-- Input -->
         <div class="p-4 border-t border-base-content/10 bg-base-100">
           <form phx-submit="send_message" id="message-form" phx-hook="ClearInput" class="flex gap-3">
@@ -174,10 +207,9 @@ defmodule OpsChatWeb.ChatLive do
               placeholder={"##{@current_channel && @current_channel.name} ga xabar yozing..."}
               autocomplete="off"
               class="input input-bordered flex-1 bg-base-200"
-              phx-keydown="typing"
             />
             <button type="submit" class="btn btn-primary" title="Yuborish">
-              📤
+              <Icons.icon name="send" class="w-5 h-5" />
             </button>
           </form>
           <div class="mt-2 text-base-content/40 text-xs">
@@ -204,7 +236,13 @@ defmodule OpsChatWeb.ChatLive do
 
   defp message_item(assigns) do
     ~H"""
-    <div class="flex gap-3 group hover:bg-base-200/50 rounded-lg p-2 -mx-2 transition-colors">
+    <div
+      class="flex gap-3 group hover:bg-base-200/50 rounded-lg p-2 -mx-2 transition-colors"
+      id={"message-#{@message.id}"}
+      phx-hook="ContextMenu"
+      data-message-id={@message.id}
+      data-message-type={@message.type}
+    >
       <div class="avatar placeholder flex-shrink-0">
         <div class={message_avatar_class(@message.type)}>
           <span class="text-sm">
@@ -215,7 +253,7 @@ defmodule OpsChatWeb.ChatLive do
         </div>
       </div>
       <div class="flex-1 min-w-0">
-        <div class="flex items-baseline gap-2">
+        <div class="flex items-center gap-2">
           <span class={message_username_class(@message.type)}>
             {if @message.type == "bot",
               do: "Bot",
@@ -223,9 +261,17 @@ defmodule OpsChatWeb.ChatLive do
           </span>
           <span class="text-xs text-base-content/40">{format_time(@message.inserted_at)}</span>
           
-    <!-- Message Actions -->
+    <!-- Quick actions on hover -->
           <%= if !@editing && @message.type == "user" do %>
             <div class="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 ml-auto">
+              <button
+                phx-click="reply_to"
+                phx-value-id={@message.id}
+                class="btn btn-ghost btn-xs"
+                title="Javob berish"
+              >
+                <Icons.icon name="reply" class="w-4 h-4" />
+              </button>
               <%= if can_edit?(@message, @current_user) do %>
                 <button
                   phx-click="start_edit"
@@ -233,32 +279,28 @@ defmodule OpsChatWeb.ChatLive do
                   class="btn btn-ghost btn-xs"
                   title="Tahrirlash"
                 >
-                  ✏️
-                </button>
-                <button
-                  phx-click="delete_message"
-                  phx-value-id={@message.id}
-                  class="btn btn-ghost btn-xs text-error"
-                  title="O'chirish"
-                  data-confirm="Xabarni o'chirmoqchimisiz?"
-                >
-                  🗑️
+                  <Icons.icon name="edit" class="w-4 h-4" />
                 </button>
               <% end %>
-              <%= if @current_user.role == "admin" && !can_edit?(@message, @current_user) do %>
-                <button
-                  phx-click="delete_message"
-                  phx-value-id={@message.id}
-                  class="btn btn-ghost btn-xs text-error"
-                  title="O'chirish (admin)"
-                  data-confirm="Xabarni o'chirmoqchimisiz?"
-                >
-                  🗑️
-                </button>
-              <% end %>
+              <button
+                phx-click="show_context_menu_click"
+                phx-value-id={@message.id}
+                phx-value-type={@message.type}
+                class="btn btn-ghost btn-xs"
+                title="Ko'proq"
+              >
+                <Icons.icon name="more-vertical" class="w-4 h-4" />
+              </button>
             </div>
           <% end %>
         </div>
+        
+    <!-- Reply reference -->
+        <%= if @message.reply_to_id do %>
+          <div class="text-xs text-base-content/50 bg-base-200 rounded px-2 py-1 mb-1 border-l-2 border-primary">
+            Javob...
+          </div>
+        <% end %>
 
         <%= if @editing do %>
           <form phx-submit="save_edit" class="mt-1 flex gap-2">
@@ -271,8 +313,12 @@ defmodule OpsChatWeb.ChatLive do
               phx-keydown="cancel_edit_on_escape"
               autofocus
             />
-            <button type="submit" class="btn btn-primary btn-sm">💾</button>
-            <button type="button" phx-click="cancel_edit" class="btn btn-ghost btn-sm">❌</button>
+            <button type="submit" class="btn btn-primary btn-sm">
+              <Icons.icon name="save" class="w-4 h-4" />
+            </button>
+            <button type="button" phx-click="cancel_edit" class="btn btn-ghost btn-sm">
+              <Icons.icon name="x" class="w-4 h-4" />
+            </button>
           </form>
         <% else %>
           <div class={message_content_class(@message.type)}>
@@ -280,6 +326,58 @@ defmodule OpsChatWeb.ChatLive do
           </div>
         <% end %>
       </div>
+    </div>
+    """
+  end
+
+  defp context_menu(assigns) do
+    ~H"""
+    <div
+      class="fixed bg-base-100 rounded-lg shadow-xl border border-base-content/10 py-1 min-w-[180px] z-50"
+      style={"top: #{@menu.y}px; left: #{@menu.x}px;"}
+      phx-click-away="close_context_menu"
+    >
+      <button
+        phx-click="reply_to"
+        phx-value-id={@menu.message_id}
+        class="w-full px-3 py-2 text-left hover:bg-base-200 flex items-center gap-2 text-sm"
+      >
+        <Icons.icon name="reply" class="w-4 h-4" /> Javob berish
+      </button>
+      <button
+        phx-click="copy_message"
+        phx-value-id={@menu.message_id}
+        class="w-full px-3 py-2 text-left hover:bg-base-200 flex items-center gap-2 text-sm"
+      >
+        <Icons.icon name="copy" class="w-4 h-4" /> Nusxa olish
+      </button>
+      <%= if @menu.can_edit do %>
+        <div class="border-t border-base-content/10 my-1"></div>
+        <button
+          phx-click="start_edit"
+          phx-value-id={@menu.message_id}
+          class="w-full px-3 py-2 text-left hover:bg-base-200 flex items-center gap-2 text-sm"
+        >
+          <Icons.icon name="edit" class="w-4 h-4" /> Tahrirlash
+        </button>
+        <button
+          phx-click="delete_message"
+          phx-value-id={@menu.message_id}
+          class="w-full px-3 py-2 text-left hover:bg-error/10 text-error flex items-center gap-2 text-sm"
+        >
+          <Icons.icon name="trash" class="w-4 h-4" /> O'chirish
+        </button>
+      <% end %>
+      <%= if @current_user.role == "admin" && !@menu.can_edit do %>
+        <div class="border-t border-base-content/10 my-1"></div>
+        <button
+          phx-click="delete_message"
+          phx-value-id={@menu.message_id}
+          class="w-full px-3 py-2 text-left hover:bg-error/10 text-error flex items-center gap-2 text-sm"
+        >
+          <Icons.icon name="trash" class="w-4 h-4" /> O'chirish (admin)
+        </button>
+      <% end %>
     </div>
     """
   end
@@ -353,7 +451,9 @@ defmodule OpsChatWeb.ChatLive do
          socket
          |> assign(:current_channel, channel)
          |> assign(:messages, messages)
-         |> assign(:editing_message_id, nil)}
+         |> assign(:editing_message_id, nil)
+         |> assign(:context_menu, nil)
+         |> assign(:reply_to, nil)}
     end
   end
 
@@ -366,8 +466,19 @@ defmodule OpsChatWeb.ChatLive do
     if content != "" do
       channel_id = socket.assigns.current_channel.id
       user = socket.assigns.current_user
+      reply_to = socket.assigns.reply_to
 
-      {:ok, message} = Chat.create_channel_message(channel_id, user.id, content)
+      # Create message with optional reply
+      attrs = %{
+        content: content,
+        user_id: user.id,
+        channel_id: channel_id,
+        type: "user"
+      }
+
+      attrs = if reply_to, do: Map.put(attrs, :reply_to_id, reply_to.id), else: attrs
+
+      {:ok, message} = Chat.create_message(attrs)
       broadcast_message(channel_id, message)
 
       if String.starts_with?(content, "/") do
@@ -376,14 +487,94 @@ defmodule OpsChatWeb.ChatLive do
         broadcast_message(channel_id, bot_message)
       end
 
-      {:noreply, push_event(socket, "clear-input", %{})}
+      {:noreply,
+       socket
+       |> assign(:reply_to, nil)
+       |> push_event("clear-input", %{})}
     else
       {:noreply, socket}
     end
   end
 
   @impl true
-  def handle_event("typing", _params, socket), do: {:noreply, socket}
+  def handle_event("show_context_menu", %{"id" => id, "type" => type, "x" => x, "y" => y}, socket) do
+    # Only show context menu for user messages
+    if type == "user" do
+      message = Enum.find(socket.assigns.messages, &(to_string(&1.id) == id))
+
+      if message do
+        menu = %{
+          message_id: id,
+          can_edit: can_edit?(message, socket.assigns.current_user),
+          x: x,
+          y: y
+        }
+
+        {:noreply, assign(socket, :context_menu, menu)}
+      else
+        {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("show_context_menu_click", %{"id" => id, "type" => type}, socket) do
+    # Show context menu from button click (uses fixed position)
+    if type == "user" do
+      message = Enum.find(socket.assigns.messages, &(to_string(&1.id) == id))
+
+      if message do
+        menu = %{
+          message_id: id,
+          can_edit: can_edit?(message, socket.assigns.current_user),
+          x: 200,
+          y: 200
+        }
+
+        {:noreply, assign(socket, :context_menu, menu)}
+      else
+        {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("close_context_menu", _, socket) do
+    {:noreply, assign(socket, :context_menu, nil)}
+  end
+
+  @impl true
+  def handle_event("reply_to", %{"id" => id}, socket) do
+    message = Enum.find(socket.assigns.messages, &(to_string(&1.id) == id))
+
+    {:noreply,
+     socket
+     |> assign(:reply_to, message)
+     |> assign(:context_menu, nil)}
+  end
+
+  @impl true
+  def handle_event("cancel_reply", _, socket) do
+    {:noreply, assign(socket, :reply_to, nil)}
+  end
+
+  @impl true
+  def handle_event("copy_message", %{"id" => id}, socket) do
+    message = Enum.find(socket.assigns.messages, &(to_string(&1.id) == id))
+
+    if message do
+      {:noreply,
+       socket
+       |> assign(:context_menu, nil)
+       |> push_event("copy-to-clipboard", %{text: message.content})}
+    else
+      {:noreply, assign(socket, :context_menu, nil)}
+    end
+  end
 
   @impl true
   def handle_event("toggle_channel_form", _, socket) do
@@ -423,9 +614,10 @@ defmodule OpsChatWeb.ChatLive do
       {:noreply,
        socket
        |> assign(:editing_message_id, message.id)
-       |> assign(:edit_content, message.content)}
+       |> assign(:edit_content, message.content)
+       |> assign(:context_menu, nil)}
     else
-      {:noreply, socket}
+      {:noreply, assign(socket, :context_menu, nil)}
     end
   end
 
@@ -500,13 +692,16 @@ defmodule OpsChatWeb.ChatLive do
             {:message_deleted, message_id}
           )
 
-          {:noreply, assign(socket, :messages, messages)}
+          {:noreply,
+           socket
+           |> assign(:messages, messages)
+           |> assign(:context_menu, nil)}
 
         {:error, _} ->
           {:noreply, put_flash(socket, :error, "Xabarni o'chirishda xatolik")}
       end
     else
-      {:noreply, socket}
+      {:noreply, assign(socket, :context_menu, nil)}
     end
   end
 

@@ -13,6 +13,7 @@ defmodule OpsChat.Chat.Message do
   schema "messages" do
     field :content, :string
     field :type, :string, default: "user"
+    field :reply_to_id, :integer
 
     belongs_to :user, User
     belongs_to :channel, Channel
@@ -22,7 +23,7 @@ defmodule OpsChat.Chat.Message do
 
   def changeset(message, attrs) do
     message
-    |> cast(attrs, [:content, :user_id, :type, :channel_id])
+    |> cast(attrs, [:content, :user_id, :type, :channel_id, :reply_to_id])
     |> validate_required([:content])
     |> validate_inclusion(:type, @type_values)
     |> validate_length(:content, min: 1, max: 10_000)
