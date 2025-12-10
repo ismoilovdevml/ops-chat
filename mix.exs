@@ -21,7 +21,7 @@ defmodule OpsChat.MixProject do
   def application do
     [
       mod: {OpsChat.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :ssh, :public_key]
     ]
   end
 
