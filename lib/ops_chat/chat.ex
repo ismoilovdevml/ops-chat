@@ -160,4 +160,29 @@ defmodule OpsChat.Chat do
     |> where([m], m.inserted_at > ^last_read_at)
     |> Repo.aggregate(:count)
   end
+
+  def get_message(id), do: Repo.get(Message, id) |> Repo.preload(:user)
+
+  def update_message(id, attrs) do
+    case Repo.get(Message, id) do
+      nil ->
+        {:error, :not_found}
+
+      message ->
+        message
+        |> Message.changeset(attrs)
+        |> Repo.update()
+        |> case do
+          {:ok, msg} -> {:ok, Repo.preload(msg, :user)}
+          error -> error
+        end
+    end
+  end
+
+  def delete_message(id) do
+    case Repo.get(Message, id) do
+      nil -> {:error, :not_found}
+      message -> Repo.delete(message)
+    end
+  end
 end

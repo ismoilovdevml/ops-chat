@@ -1,6 +1,6 @@
 defmodule OpsChatWeb.ChatLive do
   @moduledoc """
-  Discord-style chat with channels sidebar.
+  Discord-style chat with channels sidebar and message actions.
   """
   use OpsChatWeb, :live_view
 
@@ -20,14 +20,12 @@ defmodule OpsChatWeb.ChatLive do
     current_user = get_user_from_session(session)
 
     if current_user do
-      # Ensure default channels exist
       Chat.ensure_default_channels()
 
       channels = Chat.list_channels()
       current_channel = Chat.get_channel_by_slug(channel_slug) || Chat.get_default_channel()
 
       if connected?(socket) do
-        # Subscribe to channel-specific topic
         Phoenix.PubSub.subscribe(OpsChat.PubSub, "chat:#{current_channel.id}")
       end
 
@@ -39,8 +37,9 @@ defmodule OpsChatWeb.ChatLive do
        |> assign(:channels, channels)
        |> assign(:current_channel, current_channel)
        |> assign(:messages, messages)
-       |> assign(:message_input, "")
-       |> assign(:show_channel_form, false)}
+       |> assign(:show_channel_form, false)
+       |> assign(:editing_message_id, nil)
+       |> assign(:edit_content, "")}
     else
       {:ok, redirect(socket, to: ~p"/login")}
     end
@@ -57,32 +56,28 @@ defmodule OpsChatWeb.ChatLive do
   def render(assigns) do
     ~H"""
     <div class="flex h-screen bg-base-200" data-theme="opschat">
-      <!-- Sidebar - Channels -->
+      <!-- Sidebar -->
       <aside class="w-64 bg-base-300 flex flex-col border-r border-base-content/10">
-        <!-- Header -->
         <div class="p-4 border-b border-base-content/10">
           <h1 class="text-xl font-bold text-primary flex items-center gap-2">
             🖥️ OpsChat
           </h1>
           <p class="text-xs text-base-content/50 mt-1">DevOps Command Center</p>
         </div>
-        
-    <!-- Channel List -->
+
         <div class="flex-1 overflow-y-auto p-2">
-          <!-- General Channels -->
           <div class="mb-4">
             <div class="flex items-center justify-between px-2 mb-1">
               <span class="text-xs font-semibold text-base-content/50 uppercase">Kanallar</span>
               <%= if @current_user.role == "admin" do %>
-                <button phx-click="toggle_channel_form" class="btn btn-ghost btn-xs">+</button>
+                <button phx-click="toggle_channel_form" class="btn btn-ghost btn-xs">➕</button>
               <% end %>
             </div>
             <%= for channel <- Enum.filter(@channels, &(&1.type in ["general", "custom"])) do %>
               <.channel_item channel={channel} current={@current_channel} />
             <% end %>
           </div>
-          
-    <!-- Server Channels -->
+
           <%= if Enum.any?(@channels, &(&1.type == "server")) do %>
             <div class="mb-4">
               <span class="text-xs font-semibold text-base-content/50 uppercase px-2">Serverlar</span>
@@ -92,8 +87,7 @@ defmodule OpsChatWeb.ChatLive do
             </div>
           <% end %>
         </div>
-        
-    <!-- User Info -->
+
         <div class="p-3 border-t border-base-content/10 bg-base-200">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -109,8 +103,8 @@ defmodule OpsChatWeb.ChatLive do
                 <div class="text-xs text-base-content/50">{@current_user.role}</div>
               </div>
             </div>
-            <.link href={~p"/logout"} method="delete" class="btn btn-ghost btn-xs">
-              <span class="hero-arrow-right-on-rectangle w-4 h-4"></span>
+            <.link href={~p"/logout"} method="delete" class="btn btn-ghost btn-xs" title="Chiqish">
+              🚪
             </.link>
           </div>
         </div>
@@ -118,7 +112,6 @@ defmodule OpsChatWeb.ChatLive do
       
     <!-- Main Content -->
       <main class="flex-1 flex flex-col">
-        <!-- Channel Header -->
         <header class="h-14 px-4 flex items-center justify-between border-b border-base-content/10 bg-base-100">
           <div class="flex items-center gap-2">
             <span class="text-xl">{@current_channel && @current_channel.icon}</span>
@@ -130,12 +123,12 @@ defmodule OpsChatWeb.ChatLive do
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <.link href={~p"/servers"} class="btn btn-ghost btn-sm">
-              <span class="hero-server-stack w-4 h-4"></span> Serverlar
+            <.link href={~p"/servers"} class="btn btn-ghost btn-sm gap-1">
+              🖥️ <span class="hidden sm:inline">Serverlar</span>
             </.link>
             <%= if @current_user.role == "admin" do %>
-              <.link href={~p"/audit"} class="btn btn-ghost btn-sm">
-                <span class="hero-chart-bar w-4 h-4"></span> Audit
+              <.link href={~p"/audit"} class="btn btn-ghost btn-sm gap-1">
+                📊 <span class="hidden sm:inline">Audit</span>
               </.link>
             <% end %>
           </div>
@@ -143,7 +136,7 @@ defmodule OpsChatWeb.ChatLive do
         
     <!-- Messages -->
         <div
-          class="flex-1 overflow-y-auto p-4 space-y-4 bg-base-100"
+          class="flex-1 overflow-y-auto p-4 space-y-1 bg-base-100"
           id="messages"
           phx-hook="ScrollBottom"
         >
@@ -152,7 +145,12 @@ defmodule OpsChatWeb.ChatLive do
           <% end %>
 
           <%= for message <- @messages do %>
-            <.message_item message={message} />
+            <.message_item
+              message={message}
+              current_user={@current_user}
+              editing={@editing_message_id == message.id}
+              edit_content={@edit_content}
+            />
           <% end %>
 
           <%= if Enum.empty?(@messages) do %>
@@ -168,17 +166,18 @@ defmodule OpsChatWeb.ChatLive do
         
     <!-- Input -->
         <div class="p-4 border-t border-base-content/10 bg-base-100">
-          <form phx-submit="send_message" class="flex gap-3">
+          <form phx-submit="send_message" id="message-form" phx-hook="ClearInput" class="flex gap-3">
             <input
               type="text"
               name="message"
-              value={@message_input}
+              id="message-input"
               placeholder={"##{@current_channel && @current_channel.name} ga xabar yozing..."}
               autocomplete="off"
               class="input input-bordered flex-1 bg-base-200"
+              phx-keydown="typing"
             />
-            <button type="submit" class="btn btn-primary">
-              <span class="hero-paper-airplane w-5 h-5"></span>
+            <button type="submit" class="btn btn-primary" title="Yuborish">
+              📤
             </button>
           </form>
           <div class="mt-2 text-base-content/40 text-xs">
@@ -205,7 +204,7 @@ defmodule OpsChatWeb.ChatLive do
 
   defp message_item(assigns) do
     ~H"""
-    <div class="flex gap-3 group">
+    <div class="flex gap-3 group hover:bg-base-200/50 rounded-lg p-2 -mx-2 transition-colors">
       <div class="avatar placeholder flex-shrink-0">
         <div class={message_avatar_class(@message.type)}>
           <span class="text-sm">
@@ -223,10 +222,63 @@ defmodule OpsChatWeb.ChatLive do
               else: (@message.user && @message.user.username) || "System"}
           </span>
           <span class="text-xs text-base-content/40">{format_time(@message.inserted_at)}</span>
+          
+    <!-- Message Actions -->
+          <%= if !@editing && @message.type == "user" do %>
+            <div class="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 ml-auto">
+              <%= if can_edit?(@message, @current_user) do %>
+                <button
+                  phx-click="start_edit"
+                  phx-value-id={@message.id}
+                  class="btn btn-ghost btn-xs"
+                  title="Tahrirlash"
+                >
+                  ✏️
+                </button>
+                <button
+                  phx-click="delete_message"
+                  phx-value-id={@message.id}
+                  class="btn btn-ghost btn-xs text-error"
+                  title="O'chirish"
+                  data-confirm="Xabarni o'chirmoqchimisiz?"
+                >
+                  🗑️
+                </button>
+              <% end %>
+              <%= if @current_user.role == "admin" && !can_edit?(@message, @current_user) do %>
+                <button
+                  phx-click="delete_message"
+                  phx-value-id={@message.id}
+                  class="btn btn-ghost btn-xs text-error"
+                  title="O'chirish (admin)"
+                  data-confirm="Xabarni o'chirmoqchimisiz?"
+                >
+                  🗑️
+                </button>
+              <% end %>
+            </div>
+          <% end %>
         </div>
-        <div class={message_content_class(@message.type)}>
-          <pre class="whitespace-pre-wrap font-mono text-sm"><%= @message.content %></pre>
-        </div>
+
+        <%= if @editing do %>
+          <form phx-submit="save_edit" class="mt-1 flex gap-2">
+            <input type="hidden" name="message_id" value={@message.id} />
+            <input
+              type="text"
+              name="content"
+              value={@edit_content}
+              class="input input-bordered input-sm flex-1"
+              phx-keydown="cancel_edit_on_escape"
+              autofocus
+            />
+            <button type="submit" class="btn btn-primary btn-sm">💾</button>
+            <button type="button" phx-click="cancel_edit" class="btn btn-ghost btn-sm">❌</button>
+          </form>
+        <% else %>
+          <div class={message_content_class(@message.type)}>
+            <pre class="whitespace-pre-wrap font-mono text-sm"><%= @message.content %></pre>
+          </div>
+        <% end %>
       </div>
     </div>
     """
@@ -278,6 +330,10 @@ defmodule OpsChatWeb.ChatLive do
     Calendar.strftime(datetime, "%H:%M")
   end
 
+  defp can_edit?(message, current_user) do
+    message.user_id == current_user.id
+  end
+
   # Event Handlers
   @impl true
   def handle_params(%{"channel" => channel_slug}, _uri, socket) do
@@ -286,20 +342,18 @@ defmodule OpsChatWeb.ChatLive do
         {:noreply, push_navigate(socket, to: ~p"/chat")}
 
       channel ->
-        # Unsubscribe from old channel
         if socket.assigns.current_channel do
           Phoenix.PubSub.unsubscribe(OpsChat.PubSub, "chat:#{socket.assigns.current_channel.id}")
         end
 
-        # Subscribe to new channel
         Phoenix.PubSub.subscribe(OpsChat.PubSub, "chat:#{channel.id}")
-
         messages = Chat.list_messages(channel.id)
 
         {:noreply,
          socket
          |> assign(:current_channel, channel)
-         |> assign(:messages, messages)}
+         |> assign(:messages, messages)
+         |> assign(:editing_message_id, nil)}
     end
   end
 
@@ -313,22 +367,23 @@ defmodule OpsChatWeb.ChatLive do
       channel_id = socket.assigns.current_channel.id
       user = socket.assigns.current_user
 
-      # Create user message
       {:ok, message} = Chat.create_channel_message(channel_id, user.id, content)
       broadcast_message(channel_id, message)
 
-      # Check for bot command
       if String.starts_with?(content, "/") do
         bot_response = Bot.execute_command(content, user)
         {:ok, bot_message} = Chat.create_bot_message(bot_response, user.id, channel_id)
         broadcast_message(channel_id, bot_message)
       end
 
-      {:noreply, assign(socket, :message_input, "")}
+      {:noreply, push_event(socket, "clear-input", %{})}
     else
       {:noreply, socket}
     end
   end
+
+  @impl true
+  def handle_event("typing", _params, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("toggle_channel_form", _, socket) do
@@ -361,8 +416,119 @@ defmodule OpsChatWeb.ChatLive do
   end
 
   @impl true
+  def handle_event("start_edit", %{"id" => id}, socket) do
+    message = Enum.find(socket.assigns.messages, &(to_string(&1.id) == id))
+
+    if message && can_edit?(message, socket.assigns.current_user) do
+      {:noreply,
+       socket
+       |> assign(:editing_message_id, message.id)
+       |> assign(:edit_content, message.content)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_edit", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_message_id, nil)
+     |> assign(:edit_content, "")}
+  end
+
+  @impl true
+  def handle_event("cancel_edit_on_escape", %{"key" => "Escape"}, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_message_id, nil)
+     |> assign(:edit_content, "")}
+  end
+
+  def handle_event("cancel_edit_on_escape", _, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("save_edit", %{"message_id" => id, "content" => content}, socket) do
+    content = String.trim(content)
+
+    if content != "" do
+      case Chat.update_message(String.to_integer(id), %{content: content}) do
+        {:ok, updated_message} ->
+          messages =
+            Enum.map(socket.assigns.messages, fn m ->
+              if m.id == updated_message.id, do: updated_message, else: m
+            end)
+
+          Phoenix.PubSub.broadcast(
+            OpsChat.PubSub,
+            "chat:#{socket.assigns.current_channel.id}",
+            {:message_updated, updated_message}
+          )
+
+          {:noreply,
+           socket
+           |> assign(:messages, messages)
+           |> assign(:editing_message_id, nil)
+           |> assign(:edit_content, "")}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Xabarni tahrirlashda xatolik")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("delete_message", %{"id" => id}, socket) do
+    message_id = String.to_integer(id)
+    message = Enum.find(socket.assigns.messages, &(&1.id == message_id))
+
+    can_delete =
+      message &&
+        (can_edit?(message, socket.assigns.current_user) ||
+           socket.assigns.current_user.role == "admin")
+
+    if can_delete do
+      case Chat.delete_message(message_id) do
+        {:ok, _} ->
+          messages = Enum.reject(socket.assigns.messages, &(&1.id == message_id))
+
+          Phoenix.PubSub.broadcast(
+            OpsChat.PubSub,
+            "chat:#{socket.assigns.current_channel.id}",
+            {:message_deleted, message_id}
+          )
+
+          {:noreply, assign(socket, :messages, messages)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Xabarni o'chirishda xatolik")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_info({:new_message, message}, socket) do
     {:noreply, assign(socket, :messages, socket.assigns.messages ++ [message])}
+  end
+
+  @impl true
+  def handle_info({:message_updated, updated_message}, socket) do
+    messages =
+      Enum.map(socket.assigns.messages, fn m ->
+        if m.id == updated_message.id, do: updated_message, else: m
+      end)
+
+    {:noreply, assign(socket, :messages, messages)}
+  end
+
+  @impl true
+  def handle_info({:message_deleted, message_id}, socket) do
+    messages = Enum.reject(socket.assigns.messages, &(&1.id == message_id))
+    {:noreply, assign(socket, :messages, messages)}
   end
 
   defp broadcast_message(channel_id, message) do

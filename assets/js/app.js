@@ -41,6 +41,17 @@ const Hooks = {
     scrollToBottom() {
       this.el.scrollTop = this.el.scrollHeight
     }
+  },
+  ClearInput: {
+    mounted() {
+      this.handleEvent("clear-input", () => {
+        const input = this.el.querySelector("#message-input")
+        if (input) {
+          input.value = ""
+          input.focus()
+        }
+      })
+    }
   }
 }
 
