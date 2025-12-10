@@ -24,8 +24,12 @@ defmodule OpsChat.Accounts do
     user = get_user_by_username(username)
 
     cond do
-      user && User.verify_password(user, password) -> {:ok, user}
-      user -> {:error, :invalid_password}
+      user && User.verify_password(user, password) ->
+        {:ok, user}
+
+      user ->
+        {:error, :invalid_password}
+
       true ->
         Bcrypt.no_user_verify()
         {:error, :not_found}

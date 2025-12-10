@@ -15,11 +15,13 @@ user_password = System.get_env("USER_PASSWORD", "devops123")
 # Create admin user
 case Accounts.get_user_by_username(admin_username) do
   nil ->
-    {:ok, _user} = Accounts.create_user(%{
-      username: admin_username,
-      password: admin_password,
-      role: "admin"
-    })
+    {:ok, _user} =
+      Accounts.create_user(%{
+        username: admin_username,
+        password: admin_password,
+        role: "admin"
+      })
+
     IO.puts("Admin user created: #{admin_username}")
 
   _user ->
@@ -29,11 +31,13 @@ end
 # Create a regular user
 case Accounts.get_user_by_username(user_username) do
   nil ->
-    {:ok, _user} = Accounts.create_user(%{
-      username: user_username,
-      password: user_password,
-      role: "user"
-    })
+    {:ok, _user} =
+      Accounts.create_user(%{
+        username: user_username,
+        password: user_password,
+        role: "user"
+      })
+
     IO.puts("User created: #{user_username}")
 
   _user ->

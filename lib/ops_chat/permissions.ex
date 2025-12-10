@@ -7,7 +7,6 @@ defmodule OpsChat.Permissions do
   @admin_prefixes ["/ssh add", "/ssh remove", "/ssh delete"]
 
   @user_commands ~w(/help /status /uptime /disk /memory /cpu /logs /ps /network /who /servers)
-  @user_prefixes ["/ssh list", "/ssh test", "/r ", "/rstatus", "/rdisk", "/rmemory", "/rlogs"]
 
   def can_execute?(user, command) do
     case user.role do

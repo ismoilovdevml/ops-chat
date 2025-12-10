@@ -32,7 +32,17 @@ defmodule OpsChat.Chat.Channel do
 
   def changeset(channel, attrs) do
     channel
-    |> cast(attrs, [:name, :slug, :description, :type, :icon, :position, :is_private, :user_id, :server_id])
+    |> cast(attrs, [
+      :name,
+      :slug,
+      :description,
+      :type,
+      :icon,
+      :position,
+      :is_private,
+      :user_id,
+      :server_id
+    ])
     |> validate_required([:name, :slug])
     |> validate_inclusion(:type, @type_values)
     |> validate_length(:name, min: 1, max: 50)
@@ -49,7 +59,9 @@ defmodule OpsChat.Chat.Channel do
           nil -> changeset
           name -> put_change(changeset, :slug, slugify(name))
         end
-      _ -> changeset
+
+      _ ->
+        changeset
     end
   end
 

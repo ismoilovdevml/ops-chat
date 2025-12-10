@@ -1,4 +1,6 @@
 defmodule OpsChat.Servers.Server do
+  @moduledoc "SSH server configuration schema."
+
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -7,7 +9,8 @@ defmodule OpsChat.Servers.Server do
     field :host, :string
     field :port, :integer, default: 22
     field :username, :string
-    field :auth_type, :string, default: "key"  # key, password
+    # key, password
+    field :auth_type, :string, default: "key"
     field :private_key, :string
     field :password, :string
     field :description, :string
@@ -19,10 +22,20 @@ defmodule OpsChat.Servers.Server do
 
   def changeset(server, attrs) do
     server
-    |> cast(attrs, [:name, :host, :port, :username, :auth_type, :private_key, :password, :description, :user_id])
+    |> cast(attrs, [
+      :name,
+      :host,
+      :port,
+      :username,
+      :auth_type,
+      :private_key,
+      :password,
+      :description,
+      :user_id
+    ])
     |> validate_required([:name, :host, :username, :user_id])
     |> validate_inclusion(:auth_type, ["key", "password"])
-    |> validate_number(:port, greater_than: 0, less_than: 65536)
+    |> validate_number(:port, greater_than: 0, less_than: 65_536)
     |> unique_constraint(:name)
     |> validate_auth()
   end

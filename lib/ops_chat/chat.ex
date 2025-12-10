@@ -5,8 +5,8 @@ defmodule OpsChat.Chat do
 
   import Ecto.Query
 
-  alias OpsChat.Repo
   alias OpsChat.Chat.{Channel, Message}
+  alias OpsChat.Repo
 
   # ============ Channels ============
 
@@ -53,9 +53,30 @@ defmodule OpsChat.Chat do
 
   def ensure_default_channels do
     defaults = [
-      %{name: "general", slug: "general", type: "general", icon: "💬", description: "Umumiy chat", position: 0},
-      %{name: "alerts", slug: "alerts", type: "general", icon: "🚨", description: "Tizim ogohlantirishlari", position: 1},
-      %{name: "deployments", slug: "deployments", type: "general", icon: "🚀", description: "Deploy loglar", position: 2}
+      %{
+        name: "general",
+        slug: "general",
+        type: "general",
+        icon: "💬",
+        description: "Umumiy chat",
+        position: 0
+      },
+      %{
+        name: "alerts",
+        slug: "alerts",
+        type: "general",
+        icon: "🚨",
+        description: "Tizim ogohlantirishlari",
+        position: 1
+      },
+      %{
+        name: "deployments",
+        slug: "deployments",
+        type: "general",
+        icon: "🚀",
+        description: "Deploy loglar",
+        position: 2
+      }
     ]
 
     Enum.each(defaults, fn channel_attrs ->

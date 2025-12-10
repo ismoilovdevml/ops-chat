@@ -17,11 +17,9 @@ defmodule OpsChatWeb.HealthController do
   end
 
   defp check_database do
-    try do
-      OpsChat.Repo.query!("SELECT 1")
-      :ok
-    rescue
-      _ -> :error
-    end
+    OpsChat.Repo.query!("SELECT 1")
+    :ok
+  rescue
+    _ -> :error
   end
 end

@@ -1,4 +1,6 @@
 defmodule OpsChat.Accounts.User do
+  @moduledoc "User account schema with role-based access."
+
   use Ecto.Schema
   import Ecto.Changeset
 

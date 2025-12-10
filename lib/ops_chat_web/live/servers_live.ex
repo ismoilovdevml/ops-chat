@@ -4,8 +4,8 @@ defmodule OpsChatWeb.ServersLive do
   """
   use OpsChatWeb, :live_view
 
-  alias OpsChat.Servers
   alias OpsChat.Chat
+  alias OpsChat.Servers
 
   @impl true
   def mount(_params, session, socket) do
@@ -66,13 +66,13 @@ defmodule OpsChatWeb.ServersLive do
             </.link>
             <%= if @current_user.role == "admin" do %>
               <button phx-click="toggle_add_form" class="btn btn-primary">
-                <%= if @show_add_form, do: "Bekor qilish", else: "+ Server qo'shish" %>
+                {if @show_add_form, do: "Bekor qilish", else: "+ Server qo'shish"}
               </button>
             <% end %>
           </div>
         </div>
-
-        <!-- Add Server Form -->
+        
+    <!-- Add Server Form -->
         <%= if @show_add_form do %>
           <div class="card bg-base-100 shadow-lg mb-6">
             <div class="card-body">
@@ -80,46 +80,98 @@ defmodule OpsChatWeb.ServersLive do
               <.form for={@form} phx-submit="add_server" phx-change="form_change" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div class="form-control">
-                    <label class="label"><span class="label-text font-medium">Server nomi *</span></label>
-                    <input type="text" name="name" value={@form[:name].value} placeholder="web1" class="input input-bordered" required />
+                    <label class="label">
+                      <span class="label-text font-medium">Server nomi *</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={@form[:name].value}
+                      placeholder="web1"
+                      class="input input-bordered"
+                      required
+                    />
                   </div>
                   <div class="form-control">
                     <label class="label"><span class="label-text font-medium">Host/IP *</span></label>
-                    <input type="text" name="host" value={@form[:host].value} placeholder="192.168.1.10 yoki server.com" class="input input-bordered" required />
+                    <input
+                      type="text"
+                      name="host"
+                      value={@form[:host].value}
+                      placeholder="192.168.1.10 yoki server.com"
+                      class="input input-bordered"
+                      required
+                    />
                   </div>
                   <div class="form-control">
                     <label class="label"><span class="label-text font-medium">Port</span></label>
-                    <input type="number" name="port" value={@form[:port].value} placeholder="22" class="input input-bordered" />
+                    <input
+                      type="number"
+                      name="port"
+                      value={@form[:port].value}
+                      placeholder="22"
+                      class="input input-bordered"
+                    />
                   </div>
                   <div class="form-control">
-                    <label class="label"><span class="label-text font-medium">Username *</span></label>
-                    <input type="text" name="username" value={@form[:username].value} placeholder="root" class="input input-bordered" required />
+                    <label class="label">
+                      <span class="label-text font-medium">Username *</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={@form[:username].value}
+                      placeholder="root"
+                      class="input input-bordered"
+                      required
+                    />
                   </div>
                   <div class="form-control">
-                    <label class="label"><span class="label-text font-medium">Auth usuli *</span></label>
-                    <select name="auth_type" class="select select-bordered" phx-change="auth_type_change">
+                    <label class="label">
+                      <span class="label-text font-medium">Auth usuli *</span>
+                    </label>
+                    <select
+                      name="auth_type"
+                      class="select select-bordered"
+                      phx-change="auth_type_change"
+                    >
                       <option value="password" selected={@auth_type == "password"}>🔑 Password</option>
                       <option value="key" selected={@auth_type == "key"}>🔐 SSH Key</option>
                     </select>
                   </div>
                   <div class="form-control">
                     <label class="label"><span class="label-text font-medium">Tavsif</span></label>
-                    <input type="text" name="description" value={@form[:description].value} placeholder="Production web server" class="input input-bordered" />
+                    <input
+                      type="text"
+                      name="description"
+                      value={@form[:description].value}
+                      placeholder="Production web server"
+                      class="input input-bordered"
+                    />
                   </div>
                 </div>
-
-                <!-- Password field -->
+                
+    <!-- Password field -->
                 <%= if @auth_type == "password" do %>
                   <div class="form-control max-w-md">
-                    <label class="label"><span class="label-text font-medium">Password *</span></label>
-                    <input type="password" name="password" value={@form[:password].value} placeholder="••••••••" class="input input-bordered" required />
+                    <label class="label">
+                      <span class="label-text font-medium">Password *</span>
+                    </label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={@form[:password].value}
+                      placeholder="••••••••"
+                      class="input input-bordered"
+                      required
+                    />
                     <label class="label">
                       <span class="label-text-alt text-base-content/50">SSH parolini kiriting</span>
                     </label>
                   </div>
                 <% end %>
-
-                <!-- SSH Key field -->
+                
+    <!-- SSH Key field -->
                 <%= if @auth_type == "key" do %>
                   <div class="form-control">
                     <label class="label">
@@ -136,14 +188,18 @@ defmodule OpsChatWeb.ServersLive do
                         Private key ni to'liq paste qiling (id_rsa, id_ed25519 yoki id_ecdsa)
                       </span>
                       <span class="label-text-alt">
-                        <button type="button" class="link link-info text-xs" onclick="document.getElementById('key-help').showModal()">
+                        <button
+                          type="button"
+                          class="link link-info text-xs"
+                          onclick="document.getElementById('key-help').showModal()"
+                        >
                           Qanday olish?
                         </button>
                       </span>
                     </label>
                   </div>
-
-                  <!-- Key help modal -->
+                  
+    <!-- Key help modal -->
                   <dialog id="key-help" class="modal">
                     <div class="modal-box">
                       <h3 class="font-bold text-lg mb-4">SSH Key qanday olish</h3>
@@ -159,7 +215,9 @@ defmodule OpsChatWeb.ServersLive do
                         <pre class="bg-base-200 p-2 rounded text-xs">ssh-copy-id user@server</pre>
 
                         <div class="alert alert-warning mt-4">
-                          <span class="text-sm">⚠️ Private key ni hech kimga bermang va xavfsiz saqlang!</span>
+                          <span class="text-sm">
+                            ⚠️ Private key ni hech kimga bermang va xavfsiz saqlang!
+                          </span>
                         </div>
                       </div>
                       <div class="modal-action">
@@ -175,49 +233,75 @@ defmodule OpsChatWeb.ServersLive do
                 <% end %>
 
                 <div class="card-actions justify-end pt-4">
-                  <button type="button" phx-click="toggle_add_form" class="btn btn-ghost">Bekor qilish</button>
+                  <button type="button" phx-click="toggle_add_form" class="btn btn-ghost">
+                    Bekor qilish
+                  </button>
                   <button type="submit" class="btn btn-primary">
-                    <span class="hero-plus w-5 h-5"></span>
-                    Qo'shish
+                    <span class="hero-plus w-5 h-5"></span> Qo'shish
                   </button>
                 </div>
               </.form>
             </div>
           </div>
         <% end %>
-
-        <!-- Command Panel -->
+        
+    <!-- Command Panel -->
         <%= if length(@selected_servers) > 0 do %>
           <div class="card bg-base-100 shadow-lg mb-6">
             <div class="card-body">
               <h2 class="card-title">
                 <span class="hero-server-stack w-6 h-6 text-primary"></span>
-                Tanlangan serverlar: <%= length(@selected_servers) %>
+                Tanlangan serverlar: {length(@selected_servers)}
               </h2>
               <div class="flex flex-wrap gap-2 mb-4">
                 <%= for server_name <- @selected_servers do %>
                   <span class="badge badge-primary badge-lg gap-1">
                     <span class="hero-server w-4 h-4"></span>
-                    <%= server_name %>
+                    {server_name}
                   </span>
                 <% end %>
               </div>
 
               <div class="flex flex-wrap gap-2">
-                <button phx-click="run_command" phx-value-cmd="uptime" class={"btn btn-sm #{if @running_command, do: "loading"}"} disabled={@running_command}>
+                <button
+                  phx-click="run_command"
+                  phx-value-cmd="uptime"
+                  class={"btn btn-sm #{if @running_command, do: "loading"}"}
+                  disabled={@running_command}
+                >
                   <span class="hero-clock w-4 h-4"></span> Status
                 </button>
-                <button phx-click="run_command" phx-value-cmd="df -h" class={"btn btn-sm #{if @running_command, do: "loading"}"} disabled={@running_command}>
+                <button
+                  phx-click="run_command"
+                  phx-value-cmd="df -h"
+                  class={"btn btn-sm #{if @running_command, do: "loading"}"}
+                  disabled={@running_command}
+                >
                   <span class="hero-circle-stack w-4 h-4"></span> Disk
                 </button>
-                <button phx-click="run_command" phx-value-cmd="free -h" class={"btn btn-sm #{if @running_command, do: "loading"}"} disabled={@running_command}>
+                <button
+                  phx-click="run_command"
+                  phx-value-cmd="free -h"
+                  class={"btn btn-sm #{if @running_command, do: "loading"}"}
+                  disabled={@running_command}
+                >
                   <span class="hero-cpu-chip w-4 h-4"></span> Memory
                 </button>
-                <button phx-click="run_command" phx-value-cmd="top -bn1 | head -20" class={"btn btn-sm #{if @running_command, do: "loading"}"} disabled={@running_command}>
+                <button
+                  phx-click="run_command"
+                  phx-value-cmd="top -bn1 | head -20"
+                  class={"btn btn-sm #{if @running_command, do: "loading"}"}
+                  disabled={@running_command}
+                >
                   <span class="hero-chart-bar w-4 h-4"></span> Processes
                 </button>
                 <%= if @current_user.role == "admin" do %>
-                  <button phx-click="run_command" phx-value-cmd="dnf check-update 2>/dev/null | head -30 || apt list --upgradable 2>/dev/null | head -30" class={"btn btn-sm btn-warning #{if @running_command, do: "loading"}"} disabled={@running_command}>
+                  <button
+                    phx-click="run_command"
+                    phx-value-cmd="dnf check-update 2>/dev/null | head -30 || apt list --upgradable 2>/dev/null | head -30"
+                    class={"btn btn-sm btn-warning #{if @running_command, do: "loading"}"}
+                    disabled={@running_command}
+                  >
                     <span class="hero-arrow-path w-4 h-4"></span> Updates
                   </button>
                 <% end %>
@@ -225,25 +309,32 @@ defmodule OpsChatWeb.ServersLive do
 
               <%= if @current_user.role == "admin" do %>
                 <form phx-submit="run_custom_command" class="mt-4 flex gap-2">
-                  <input type="text" name="custom_cmd" placeholder="Custom buyruq kiriting..." class="input input-bordered flex-1" />
-                  <button type="submit" class={"btn btn-primary #{if @running_command, do: "loading"}"} disabled={@running_command}>
-                    <span class="hero-play w-5 h-5"></span>
-                    Bajarish
+                  <input
+                    type="text"
+                    name="custom_cmd"
+                    placeholder="Custom buyruq kiriting..."
+                    class="input input-bordered flex-1"
+                  />
+                  <button
+                    type="submit"
+                    class={"btn btn-primary #{if @running_command, do: "loading"}"}
+                    disabled={@running_command}
+                  >
+                    <span class="hero-play w-5 h-5"></span> Bajarish
                   </button>
                 </form>
               <% end %>
             </div>
           </div>
         <% end %>
-
-        <!-- Command Result -->
+        
+    <!-- Command Result -->
         <%= if @command_result do %>
           <div class="card bg-base-100 shadow-lg mb-6">
             <div class="card-body">
               <div class="flex justify-between items-center">
                 <h2 class="card-title text-info">
-                  <span class="hero-command-line w-6 h-6"></span>
-                  Natija
+                  <span class="hero-command-line w-6 h-6"></span> Natija
                 </h2>
                 <button phx-click="clear_result" class="btn btn-ghost btn-sm btn-circle">✕</button>
               </div>
@@ -252,7 +343,7 @@ defmodule OpsChatWeb.ServersLive do
                   <div class="bg-neutral rounded-lg p-4">
                     <div class="text-success font-bold mb-2 flex items-center gap-2">
                       <span class="hero-server w-5 h-5"></span>
-                      <%= server %>
+                      {server}
                     </div>
                     <pre class="text-sm text-neutral-content whitespace-pre-wrap font-mono"><%= result %></pre>
                   </div>
@@ -261,18 +352,19 @@ defmodule OpsChatWeb.ServersLive do
             </div>
           </div>
         <% end %>
-
-        <!-- Servers List -->
+        
+    <!-- Servers List -->
         <div class="card bg-base-100 shadow-lg">
           <div class="card-body">
             <div class="flex justify-between items-center mb-4">
               <h2 class="card-title">
-                <span class="hero-server-stack w-6 h-6"></span>
-                Serverlar ro'yxati
+                <span class="hero-server-stack w-6 h-6"></span> Serverlar ro'yxati
               </h2>
               <%= if length(@servers) > 0 do %>
                 <button phx-click="select_all" class="btn btn-ghost btn-sm">
-                  <%= if length(@selected_servers) == length(@servers), do: "Bekor qilish", else: "Hammasini tanlash" %>
+                  {if length(@selected_servers) == length(@servers),
+                    do: "Bekor qilish",
+                    else: "Hammasini tanlash"}
                 </button>
               <% end %>
             </div>
@@ -294,7 +386,9 @@ defmodule OpsChatWeb.ServersLive do
                         <input
                           type="checkbox"
                           class="checkbox checkbox-sm"
-                          checked={length(@selected_servers) == length(@servers) && length(@servers) > 0}
+                          checked={
+                            length(@selected_servers) == length(@servers) && length(@servers) > 0
+                          }
                           phx-click="select_all"
                         />
                       </th>
@@ -324,17 +418,19 @@ defmodule OpsChatWeb.ServersLive do
                               </div>
                             </div>
                             <div>
-                              <div class="font-bold"><%= server.name %></div>
-                              <div class="text-sm text-base-content/50"><%= server.description || "#{server.username}@#{server.host}" %></div>
+                              <div class="font-bold">{server.name}</div>
+                              <div class="text-sm text-base-content/50">
+                                {server.description || "#{server.username}@#{server.host}"}
+                              </div>
                             </div>
                           </div>
                         </td>
                         <td>
-                          <div class="font-mono text-sm"><%= server.host %>:<%= server.port %></div>
+                          <div class="font-mono text-sm">{server.host}:{server.port}</div>
                         </td>
                         <td>
                           <span class={"badge badge-sm #{if server.auth_type == "key", do: "badge-success", else: "badge-warning"}"}>
-                            <%= if server.auth_type == "key", do: "🔐 Key", else: "🔑 Password" %>
+                            {if server.auth_type == "key", do: "🔐 Key", else: "🔑 Password"}
                           </span>
                           <%= if server.auth_type == "key" && server.private_key do %>
                             <span class="badge badge-sm badge-ghost ml-1">Custom</span>
@@ -342,12 +438,20 @@ defmodule OpsChatWeb.ServersLive do
                         </td>
                         <td class="text-right">
                           <div class="flex justify-end gap-1">
-                            <button phx-click="test_connection" phx-value-name={server.name} class="btn btn-ghost btn-xs">
-                              <span class="hero-signal w-4 h-4"></span>
-                              Test
+                            <button
+                              phx-click="test_connection"
+                              phx-value-name={server.name}
+                              class="btn btn-ghost btn-xs"
+                            >
+                              <span class="hero-signal w-4 h-4"></span> Test
                             </button>
                             <%= if @current_user.role == "admin" do %>
-                              <button phx-click="delete_server" phx-value-name={server.name} class="btn btn-ghost btn-xs text-error" data-confirm="#{server.name} serverini o'chirmoqchimisiz?">
+                              <button
+                                phx-click="delete_server"
+                                phx-value-name={server.name}
+                                class="btn btn-ghost btn-xs text-error"
+                                data-confirm="#{server.name} serverini o'chirmoqchimisiz?"
+                              >
                                 <span class="hero-trash w-4 h-4"></span>
                               </button>
                             <% end %>
@@ -405,6 +509,7 @@ defmodule OpsChatWeb.ServersLive do
         Chat.create_server_channel(server)
 
         servers = Servers.list_servers()
+
         {:noreply,
          socket
          |> assign(:servers, servers)
@@ -424,6 +529,7 @@ defmodule OpsChatWeb.ServersLive do
       {:ok, _} ->
         servers = Servers.list_servers()
         selected = Enum.reject(socket.assigns.selected_servers, &(&1 == name))
+
         {:noreply,
          socket
          |> assign(:servers, servers)
@@ -438,22 +544,25 @@ defmodule OpsChatWeb.ServersLive do
   @impl true
   def handle_event("toggle_server", %{"name" => name}, socket) do
     selected = socket.assigns.selected_servers
-    new_selected = if name in selected do
-      Enum.reject(selected, &(&1 == name))
-    else
-      [name | selected]
-    end
+
+    new_selected =
+      if name in selected do
+        Enum.reject(selected, &(&1 == name))
+      else
+        [name | selected]
+      end
 
     {:noreply, assign(socket, :selected_servers, new_selected)}
   end
 
   @impl true
   def handle_event("select_all", _, socket) do
-    new_selected = if length(socket.assigns.selected_servers) == length(socket.assigns.servers) do
-      []
-    else
-      Enum.map(socket.assigns.servers, & &1.name)
-    end
+    new_selected =
+      if length(socket.assigns.selected_servers) == length(socket.assigns.servers) do
+        []
+      else
+        Enum.map(socket.assigns.servers, & &1.name)
+      end
 
     {:noreply, assign(socket, :selected_servers, new_selected)}
   end
@@ -466,8 +575,11 @@ defmodule OpsChatWeb.ServersLive do
 
       server ->
         case OpsChat.SSH.test_connection(server) do
-          {:ok, _msg} -> {:noreply, put_flash(socket, :info, "✅ #{name}: Ulanish muvaffaqiyatli!")}
-          {:error, err} -> {:noreply, put_flash(socket, :error, "❌ #{name}: #{err}")}
+          {:ok, _msg} ->
+            {:noreply, put_flash(socket, :info, "✅ #{name}: Ulanish muvaffaqiyatli!")}
+
+          {:error, err} ->
+            {:noreply, put_flash(socket, :error, "❌ #{name}: #{err}")}
         end
     end
   end
@@ -494,23 +606,24 @@ defmodule OpsChatWeb.ServersLive do
   defp run_command_on_selected(socket, cmd) do
     selected = socket.assigns.selected_servers
 
-    if length(selected) == 0 do
+    if Enum.empty?(selected) do
       {:noreply, put_flash(socket, :error, "Avval server tanlang")}
     else
       socket = assign(socket, :running_command, true)
 
-      results = Enum.map(selected, fn server_name ->
-        case Servers.get_server_by_name(server_name) do
-          nil ->
-            {server_name, "Server topilmadi"}
+      results =
+        Enum.map(selected, fn server_name ->
+          case Servers.get_server_by_name(server_name) do
+            nil ->
+              {server_name, "Server topilmadi"}
 
-          server ->
-            case OpsChat.SSH.execute_on_server(server, cmd) do
-              {:ok, output} -> {server_name, output}
-              {:error, reason} -> {server_name, "❌ Xatolik: #{reason}"}
-            end
-        end
-      end)
+            server ->
+              case OpsChat.SSH.execute_on_server(server, cmd) do
+                {:ok, output} -> {server_name, output}
+                {:error, reason} -> {server_name, "❌ Xatolik: #{reason}"}
+              end
+          end
+        end)
 
       {:noreply,
        socket
@@ -519,13 +632,6 @@ defmodule OpsChatWeb.ServersLive do
     end
   end
 
-  defp format_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-      Enum.reduce(opts, msg, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
-    |> Enum.map(fn {k, v} -> "#{k}: #{Enum.join(v, ", ")}" end)
-    |> Enum.join("; ")
-  end
+  defp format_errors(changeset),
+    do: OpsChat.Helpers.format_changeset_errors(changeset)
 end

@@ -55,38 +55,34 @@ defmodule OpsChat.Bot do
   defp do_execute(command, user) do
     [cmd | args] = command |> String.trim() |> String.split(" ", trim: true)
 
-    result = case cmd do
-      # Help
-      "/help" -> {:ok, @help_text}
-
-      # Local commands
-      "/status" -> run_status()
-      "/uptime" -> run_command("uptime")
-      "/disk" -> run_command("df -h")
-      "/memory" -> run_memory()
-      "/cpu" -> run_cpu()
-      "/logs" -> run_logs(args)
-      "/ps" -> run_ps()
-      "/network" -> run_network()
-      "/who" -> run_command("who")
-
-      # Server management
-      "/servers" -> list_servers()
-      "/ssh" -> handle_ssh_command(args, user)
-
-      # Remote commands
-      "/r" -> remote_command(args, user)
-      "/rstatus" -> remote_status(args, user)
-      "/rdisk" -> remote_disk(args, user)
-      "/rmemory" -> remote_memory(args, user)
-      "/rlogs" -> remote_logs(args, user)
-
-      # Admin commands
-      "/restart" -> remote_restart(args, user)
-      "/exec" -> remote_exec(args, user)
-
-      _ -> {:error, "Noma'lum buyruq: #{cmd}\n/help - buyruqlar ro'yxati"}
-    end
+    result =
+      case cmd do
+        # Help
+        "/help" -> {:ok, @help_text}
+        # Local commands
+        "/status" -> run_status()
+        "/uptime" -> run_command("uptime")
+        "/disk" -> run_command("df -h")
+        "/memory" -> run_memory()
+        "/cpu" -> run_cpu()
+        "/logs" -> run_logs(args)
+        "/ps" -> run_ps()
+        "/network" -> run_network()
+        "/who" -> run_command("who")
+        # Server management
+        "/servers" -> list_servers()
+        "/ssh" -> handle_ssh_command(args, user)
+        # Remote commands
+        "/r" -> remote_command(args, user)
+        "/rstatus" -> remote_status(args, user)
+        "/rdisk" -> remote_disk(args, user)
+        "/rmemory" -> remote_memory(args, user)
+        "/rlogs" -> remote_logs(args, user)
+        # Admin commands
+        "/restart" -> remote_restart(args, user)
+        "/exec" -> remote_exec(args, user)
+        _ -> {:error, "Noma'lum buyruq: #{cmd}\n/help - buyruqlar ro'yxati"}
+      end
 
     case result do
       {:ok, output} ->
@@ -114,29 +110,32 @@ defmodule OpsChat.Bot do
 
   defp handle_ssh_command(["add", name, user_host | rest], user) do
     {username, host} = parse_user_host(user_host)
-    port = case rest do
-      [p | _] -> String.to_integer(p)
-      _ -> 22
-    end
+
+    port =
+      case rest do
+        [p | _] -> String.to_integer(p)
+        _ -> 22
+      end
 
     case Servers.create_server(%{
-      name: name,
-      host: host,
-      port: port,
-      username: username,
-      auth_type: "key",
-      user_id: user.id
-    }) do
+           name: name,
+           host: host,
+           port: port,
+           username: username,
+           auth_type: "key",
+           user_id: user.id
+         }) do
       {:ok, server} ->
-        {:ok, """
-        Server qo'shildi:
-          Nomi: #{server.name}
-          Host: #{server.host}
-          Port: #{server.port}
-          User: #{server.username}
+        {:ok,
+         """
+         Server qo'shildi:
+           Nomi: #{server.name}
+           Host: #{server.host}
+           Port: #{server.port}
+           User: #{server.username}
 
-        Tekshirish: /ssh test #{server.name}
-        """}
+         Tekshirish: /ssh test #{server.name}
+         """}
 
       {:error, changeset} ->
         errors = format_changeset_errors(changeset)
@@ -164,13 +163,13 @@ defmodule OpsChat.Bot do
     servers = Servers.list_servers()
 
     if Enum.empty?(servers) do
-      {:ok, "Hech qanday server qo'shilmagan.\n\nServer qo'shish: /ssh add <name> <user@host> [port]"}
+      {:ok,
+       "Hech qanday server qo'shilmagan.\n\nServer qo'shish: /ssh add <name> <user@host> [port]"}
     else
-      list = servers
-      |> Enum.map(fn s ->
-        "  #{s.name} → #{s.username}@#{s.host}:#{s.port}"
-      end)
-      |> Enum.join("\n")
+      list =
+        Enum.map_join(servers, "\n", fn s ->
+          "  #{s.name} → #{s.username}@#{s.host}:#{s.port}"
+        end)
 
       {:ok, "Serverlar:\n#{list}"}
     end
@@ -180,12 +179,14 @@ defmodule OpsChat.Bot do
 
   defp remote_command([], _user), do: {:error, "Foydalanish: /r <server> <command>"}
   defp remote_command([_server], _user), do: {:error, "Buyruq ko'rsatilmagan"}
+
   defp remote_command([server | cmd_parts], _user) do
     command = Enum.join(cmd_parts, " ")
     SSH.execute(server, command)
   end
 
   defp remote_status([], _user), do: {:error, "Server nomi kerak: /rstatus <server>"}
+
   defp remote_status([server | _], _user) do
     commands = [
       "hostname",
@@ -193,6 +194,7 @@ defmodule OpsChat.Bot do
       "df -h / | tail -1",
       "free -h 2>/dev/null || vm_stat | head -5"
     ]
+
     command = Enum.join(commands, " && echo '---' && ")
 
     case SSH.execute(server, command) do
@@ -202,6 +204,7 @@ defmodule OpsChat.Bot do
   end
 
   defp remote_disk([], _user), do: {:error, "Server nomi kerak: /rdisk <server>"}
+
   defp remote_disk([server | _], _user) do
     case SSH.execute(server, "df -h") do
       {:ok, output} -> {:ok, "=== #{server} Disk ===\n#{output}"}
@@ -210,8 +213,10 @@ defmodule OpsChat.Bot do
   end
 
   defp remote_memory([], _user), do: {:error, "Server nomi kerak: /rmemory <server>"}
+
   defp remote_memory([server | _], _user) do
     cmd = "free -h 2>/dev/null || top -l 1 | head -10"
+
     case SSH.execute(server, cmd) do
       {:ok, output} -> {:ok, "=== #{server} Memory ===\n#{output}"}
       error -> error
@@ -219,12 +224,17 @@ defmodule OpsChat.Bot do
   end
 
   defp remote_logs([], _user), do: {:error, "Server nomi kerak: /rlogs <server>"}
+
   defp remote_logs([server | rest], _user) do
-    lines = case rest do
-      [n | _] -> n
-      _ -> "20"
-    end
-    cmd = "journalctl -n #{lines} --no-pager 2>/dev/null || tail -#{lines} /var/log/syslog 2>/dev/null || tail -#{lines} /var/log/messages"
+    lines =
+      case rest do
+        [n | _] -> n
+        _ -> "20"
+      end
+
+    cmd =
+      "journalctl -n #{lines} --no-pager 2>/dev/null || tail -#{lines} /var/log/syslog 2>/dev/null || tail -#{lines} /var/log/messages"
+
     case SSH.execute(server, cmd) do
       {:ok, output} -> {:ok, "=== #{server} Logs ===\n#{output}"}
       error -> error
@@ -233,8 +243,10 @@ defmodule OpsChat.Bot do
 
   defp remote_restart([], _user), do: {:error, "Foydalanish: /restart <server> <service>"}
   defp remote_restart([_server], _user), do: {:error, "Service nomi kerak"}
+
   defp remote_restart([server, service | _], _user) do
     cmd = "sudo systemctl restart #{service} && systemctl status #{service} --no-pager"
+
     case SSH.execute(server, cmd) do
       {:ok, output} -> {:ok, "=== #{server} - #{service} restarted ===\n#{output}"}
       error -> error
@@ -243,8 +255,10 @@ defmodule OpsChat.Bot do
 
   defp remote_exec([], _user), do: {:error, "Foydalanish: /exec <server> <command>"}
   defp remote_exec([_server], _user), do: {:error, "Buyruq kerak"}
+
   defp remote_exec([server | cmd_parts], _user) do
     command = Enum.join(cmd_parts, " ")
+
     case SSH.execute(server, command) do
       {:ok, output} -> {:ok, "=== #{server} ===\n$ #{command}\n\n#{output}"}
       error -> error
@@ -306,10 +320,11 @@ defmodule OpsChat.Bot do
   end
 
   defp run_logs(args) do
-    lines = case args do
-      [n | _] -> String.to_integer(n)
-      _ -> 20
-    end
+    lines =
+      case args do
+        [n | _] -> String.to_integer(n)
+        _ -> 20
+      end
 
     case :os.type() do
       {:unix, :darwin} ->
@@ -350,17 +365,15 @@ defmodule OpsChat.Bot do
   end
 
   defp run_command(cmd) do
-    try do
-      {output, exit_code} = System.cmd("sh", ["-c", cmd], stderr_to_stdout: true)
+    {output, exit_code} = System.cmd("sh", ["-c", cmd], stderr_to_stdout: true)
 
-      if exit_code == 0 do
-        {:ok, output}
-      else
-        {:error, "Exit code: #{exit_code}\n#{output}"}
-      end
-    rescue
-      e -> {:error, Exception.message(e)}
+    if exit_code == 0 do
+      {:ok, output}
+    else
+      {:error, "Exit code: #{exit_code}\n#{output}"}
     end
+  rescue
+    e -> {:error, Exception.message(e)}
   end
 
   # ============ Helpers ============
@@ -372,26 +385,20 @@ defmodule OpsChat.Bot do
     end
   end
 
-  defp format_changeset_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-      Enum.reduce(opts, msg, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
-    |> Enum.map(fn {k, v} -> "#{k}: #{Enum.join(v, ", ")}" end)
-    |> Enum.join("; ")
-  end
+  defp format_changeset_errors(changeset),
+    do: OpsChat.Helpers.format_changeset_errors(changeset)
 
   defp get_target([server | _]) when is_binary(server), do: server
   defp get_target(_), do: "local"
 
   defp log_audit(user_id, action, target, result, status) do
     # Truncate result if too long
-    result = if String.length(result) > 10000 do
-      String.slice(result, 0, 10000) <> "\n... (truncated)"
-    else
-      result
-    end
+    result =
+      if String.length(result) > 10_000 do
+        String.slice(result, 0, 10_000) <> "\n... (truncated)"
+      else
+        result
+      end
 
     Audit.log_command(user_id, action, target, result, status)
   end

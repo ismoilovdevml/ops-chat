@@ -5,8 +5,8 @@ defmodule OpsChat.Audit do
 
   import Ecto.Query
 
-  alias OpsChat.Repo
   alias OpsChat.Audit.Log
+  alias OpsChat.Repo
 
   # ============ Logging ============
 

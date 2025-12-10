@@ -82,20 +82,22 @@ defmodule OpsChat.SSH do
         home = System.get_env("HOME") || "/root"
         ssh_dir = Path.join(home, ".ssh")
 
-        key_opts = if server.private_key && server.private_key != "" do
-          # Custom private key provided
-          case decode_private_key(server.private_key) do
-            {:ok, key} -> [key_cb: {__MODULE__.KeyCallback, key: key}]
-            _ -> []
-          end
-        else
-          # Use default SSH keys from ~/.ssh/ if exists
-          if File.dir?(ssh_dir) do
-            [user_dir: String.to_charlist(ssh_dir)]
+        key_opts =
+          if server.private_key && server.private_key != "" do
+            # Custom private key provided
+            case decode_private_key(server.private_key) do
+              {:ok, key} -> [key_cb: {__MODULE__.KeyCallback, key: key}]
+              _ -> []
+            end
           else
-            []
+            # Use default SSH keys from ~/.ssh/ if exists
+            if File.dir?(ssh_dir) do
+              [user_dir: String.to_charlist(ssh_dir)]
+            else
+              []
+            end
           end
-        end
+
         base_opts ++ key_opts
 
       _ ->
@@ -206,8 +208,13 @@ defmodule OpsChat.SSH do
   defp format_error(:econnrefused), do: "Ulanish rad etildi"
   defp format_error(:ehostunreach), do: "Serverga yetib bo'lmadi"
   defp format_error(:eacces), do: "SSH kalit fayliga kirishga ruxsat yo'q"
-  defp format_error({:badmatch, {:error, :eacces}}), do: "SSH kalit fayliga kirishga ruxsat yo'q (~/.ssh/)"
-  defp format_error({:badmatch, {:error, reason}}), do: "Autentifikatsiya xatosi: #{inspect(reason)}"
+
+  defp format_error({:badmatch, {:error, :eacces}}),
+    do: "SSH kalit fayliga kirishga ruxsat yo'q (~/.ssh/)"
+
+  defp format_error({:badmatch, {:error, reason}}),
+    do: "Autentifikatsiya xatosi: #{inspect(reason)}"
+
   defp format_error({:badmatch, _}), do: "Autentifikatsiya xatosi"
   defp format_error({:options, {:user_dir, _}}), do: "SSH kalit katalogi topilmadi (~/.ssh/)"
   defp format_error(reason) when is_binary(reason), do: reason
@@ -220,6 +227,7 @@ defmodule OpsChat.SSH do
 
     def add_host_key(_host, _port, _key, _opts), do: :ok
 
+    # credo:disable-for-next-line Credo.Check.Readability.PredicateFunctionNames
     def is_host_key(_key, _host, _port, _alg, _opts), do: true
 
     def user_key(alg, opts) do
@@ -227,6 +235,7 @@ defmodule OpsChat.SSH do
 
       if key do
         key_algs = key_algorithms(key)
+
         if alg in key_algs do
           {:ok, key}
         else
@@ -245,7 +254,7 @@ defmodule OpsChat.SSH do
     # EC keys - NIST curves
     defp key_algorithms({:ECPrivateKey, _, _, {:namedCurve, curve}, _, _}) do
       case curve do
-        {1, 2, 840, 10045, 3, 1, 7} -> [:"ecdsa-sha2-nistp256"]
+        {1, 2, 840, 10_045, 3, 1, 7} -> [:"ecdsa-sha2-nistp256"]
         {1, 3, 132, 0, 34} -> [:"ecdsa-sha2-nistp384"]
         {1, 3, 132, 0, 35} -> [:"ecdsa-sha2-nistp521"]
         _ -> []

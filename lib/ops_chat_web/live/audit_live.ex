@@ -55,41 +55,40 @@ defmodule OpsChatWeb.AuditLive do
             <.link href={~p"/chat"} class="btn btn-ghost">← Chat</.link>
             <.link href={~p"/servers"} class="btn btn-ghost">🖥️ Servers</.link>
             <button phx-click="refresh" class="btn btn-primary">
-              <span class="hero-arrow-path w-5 h-5"></span>
-              Yangilash
+              <span class="hero-arrow-path w-5 h-5"></span> Yangilash
             </button>
           </div>
         </div>
-
-        <!-- Stats Cards -->
+        
+    <!-- Stats Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div class="card bg-base-100 shadow">
             <div class="card-body p-4">
-              <div class="text-4xl font-bold text-primary"><%= @stats.total %></div>
+              <div class="text-4xl font-bold text-primary">{@stats.total}</div>
               <div class="text-sm text-base-content/60">Jami buyruqlar</div>
             </div>
           </div>
           <div class="card bg-base-100 shadow">
             <div class="card-body p-4">
-              <div class="text-4xl font-bold text-info"><%= @stats.today %></div>
+              <div class="text-4xl font-bold text-info">{@stats.today}</div>
               <div class="text-sm text-base-content/60">Bugungi buyruqlar</div>
             </div>
           </div>
           <div class="card bg-base-100 shadow">
             <div class="card-body p-4">
-              <div class="text-4xl font-bold text-success"><%= @stats.by_status["success"] || 0 %></div>
+              <div class="text-4xl font-bold text-success">{@stats.by_status["success"] || 0}</div>
               <div class="text-sm text-base-content/60">Muvaffaqiyatli</div>
             </div>
           </div>
           <div class="card bg-base-100 shadow">
             <div class="card-body p-4">
-              <div class="text-4xl font-bold text-error"><%= @stats.by_status["error"] || 0 %></div>
+              <div class="text-4xl font-bold text-error">{@stats.by_status["error"] || 0}</div>
               <div class="text-sm text-base-content/60">Xatolar</div>
             </div>
           </div>
         </div>
-
-        <!-- Charts Row -->
+        
+    <!-- Charts Row -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <!-- Top Actions -->
           <div class="card bg-base-100 shadow">
@@ -100,14 +99,15 @@ defmodule OpsChatWeb.AuditLive do
                   <div class="flex items-center gap-3">
                     <div class="flex-1">
                       <div class="flex justify-between mb-1">
-                        <span class="font-mono text-sm"><%= action %></span>
-                        <span class="badge badge-sm"><%= count %></span>
+                        <span class="font-mono text-sm">{action}</span>
+                        <span class="badge badge-sm">{count}</span>
                       </div>
                       <progress
                         class="progress progress-primary"
                         value={count}
                         max={max_count(@stats.by_action)}
-                      ></progress>
+                      >
+                      </progress>
                     </div>
                   </div>
                 <% end %>
@@ -117,8 +117,8 @@ defmodule OpsChatWeb.AuditLive do
               </div>
             </div>
           </div>
-
-          <!-- Top Servers -->
+          
+    <!-- Top Servers -->
           <div class="card bg-base-100 shadow">
             <div class="card-body">
               <h2 class="card-title text-lg">🖥️ Eng ko'p ishlatilgan serverlar</h2>
@@ -127,14 +127,15 @@ defmodule OpsChatWeb.AuditLive do
                   <div class="flex items-center gap-3">
                     <div class="flex-1">
                       <div class="flex justify-between mb-1">
-                        <span class="font-medium"><%= target %></span>
-                        <span class="badge badge-sm badge-info"><%= count %></span>
+                        <span class="font-medium">{target}</span>
+                        <span class="badge badge-sm badge-info">{count}</span>
                       </div>
                       <progress
                         class="progress progress-info"
                         value={count}
                         max={max_count(@stats.by_target)}
-                      ></progress>
+                      >
+                      </progress>
                     </div>
                   </div>
                 <% end %>
@@ -145,8 +146,8 @@ defmodule OpsChatWeb.AuditLive do
             </div>
           </div>
         </div>
-
-        <!-- Users & Activity -->
+        
+    <!-- Users & Activity -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <!-- Top Users -->
           <div class="card bg-base-100 shadow">
@@ -157,13 +158,15 @@ defmodule OpsChatWeb.AuditLive do
                   <div class="flex items-center gap-3">
                     <div class="avatar placeholder">
                       <div class="bg-primary text-primary-content rounded-full w-8">
-                        <span class="text-sm"><%= String.first(username || "?") |> String.upcase() %></span>
+                        <span class="text-sm">
+                          {String.first(username || "?") |> String.upcase()}
+                        </span>
                       </div>
                     </div>
                     <div class="flex-1">
                       <div class="flex justify-between">
-                        <span class="font-medium"><%= username || "Unknown" %></span>
-                        <span class="badge badge-sm"><%= count %> buyruq</span>
+                        <span class="font-medium">{username || "Unknown"}</span>
+                        <span class="badge badge-sm">{count} buyruq</span>
                       </div>
                     </div>
                   </div>
@@ -174,8 +177,8 @@ defmodule OpsChatWeb.AuditLive do
               </div>
             </div>
           </div>
-
-          <!-- Recent Failures -->
+          
+    <!-- Recent Failures -->
           <div class="card bg-base-100 shadow">
             <div class="card-body">
               <h2 class="card-title text-lg text-error">⚠️ So'nggi xatolar</h2>
@@ -184,14 +187,14 @@ defmodule OpsChatWeb.AuditLive do
                   <div class="bg-error/10 rounded-lg p-2">
                     <div class="flex justify-between items-start">
                       <div>
-                        <span class="font-mono text-sm text-error"><%= log.action %></span>
+                        <span class="font-mono text-sm text-error">{log.action}</span>
                         <%= if log.target do %>
-                          <span class="badge badge-sm badge-ghost ml-1"><%= log.target %></span>
+                          <span class="badge badge-sm badge-ghost ml-1">{log.target}</span>
                         <% end %>
                       </div>
-                      <span class="text-xs text-base-content/50"><%= format_time(log.inserted_at) %></span>
+                      <span class="text-xs text-base-content/50">{format_time(log.inserted_at)}</span>
                     </div>
-                    <div class="text-xs text-base-content/60 mt-1 truncate"><%= log.result %></div>
+                    <div class="text-xs text-base-content/60 mt-1 truncate">{log.result}</div>
                   </div>
                 <% end %>
                 <%= if Enum.empty?(@failures) do %>
@@ -204,8 +207,8 @@ defmodule OpsChatWeb.AuditLive do
             </div>
           </div>
         </div>
-
-        <!-- Activity by Day Chart -->
+        
+    <!-- Activity by Day Chart -->
         <%= if length(@stats.by_day) > 0 do %>
           <div class="card bg-base-100 shadow mb-6">
             <div class="card-body">
@@ -216,17 +219,20 @@ defmodule OpsChatWeb.AuditLive do
                     <div
                       class="bg-primary rounded-t w-8 min-h-[4px] transition-all"
                       style={"height: #{bar_height(count, @stats.by_day)}px"}
-                    ></div>
-                    <div class="text-xs text-base-content/50 mt-1 rotate-45 origin-left"><%= format_date(date) %></div>
-                    <div class="text-xs font-bold"><%= count %></div>
+                    >
+                    </div>
+                    <div class="text-xs text-base-content/50 mt-1 rotate-45 origin-left">
+                      {format_date(date)}
+                    </div>
+                    <div class="text-xs font-bold">{count}</div>
                   </div>
                 <% end %>
               </div>
             </div>
           </div>
         <% end %>
-
-        <!-- Logs Table -->
+        
+    <!-- Logs Table -->
         <div class="card bg-base-100 shadow">
           <div class="card-body">
             <div class="flex justify-between items-center mb-4">
@@ -256,34 +262,39 @@ defmodule OpsChatWeb.AuditLive do
                   <%= for log <- @logs do %>
                     <tr class="hover">
                       <td class="text-xs text-base-content/60 whitespace-nowrap">
-                        <%= format_datetime(log.inserted_at) %>
+                        {format_datetime(log.inserted_at)}
                       </td>
                       <td>
                         <div class="flex items-center gap-2">
                           <div class="avatar placeholder">
                             <div class="bg-neutral text-neutral-content rounded-full w-6">
-                              <span class="text-xs"><%= String.first(log.user && log.user.username || "?") |> String.upcase() %></span>
+                              <span class="text-xs">
+                                {String.first((log.user && log.user.username) || "?")
+                                |> String.upcase()}
+                              </span>
                             </div>
                           </div>
-                          <span class="text-sm"><%= log.user && log.user.username || "?" %></span>
+                          <span class="text-sm">{(log.user && log.user.username) || "?"}</span>
                         </div>
                       </td>
-                      <td class="font-mono text-sm"><%= log.action %></td>
+                      <td class="font-mono text-sm">{log.action}</td>
                       <td>
                         <%= if log.target do %>
-                          <span class="badge badge-sm badge-ghost"><%= log.target %></span>
+                          <span class="badge badge-sm badge-ghost">{log.target}</span>
                         <% else %>
                           <span class="text-base-content/30">-</span>
                         <% end %>
                       </td>
                       <td>
                         <span class={"badge badge-sm #{if log.status == "success", do: "badge-success", else: "badge-error"}"}>
-                          <%= log.status %>
+                          {log.status}
                         </span>
                       </td>
                       <td class="max-w-xs">
                         <div class="text-xs text-base-content/60 truncate" title={log.result}>
-                          <%= String.slice(log.result || "", 0, 50) %><%= if String.length(log.result || "") > 50, do: "..." %>
+                          {String.slice(log.result || "", 0, 50)}{if String.length(log.result || "") >
+                                                                       50,
+                                                                     do: "..."}
                         </div>
                       </td>
                     </tr>

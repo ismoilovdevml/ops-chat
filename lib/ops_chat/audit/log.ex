@@ -1,12 +1,18 @@
 defmodule OpsChat.Audit.Log do
+  @moduledoc "Audit log entry schema for tracking command executions."
+
   use Ecto.Schema
   import Ecto.Changeset
 
   schema "audit_logs" do
-    field :action, :string      # command executed: status, disk, restart, etc.
-    field :target, :string      # target server/service
-    field :result, :string      # command output
-    field :status, :string, default: "success"  # success, error
+    # command executed: status, disk, restart, etc.
+    field :action, :string
+    # target server/service
+    field :target, :string
+    # command output
+    field :result, :string
+    # success, error
+    field :status, :string, default: "success"
 
     belongs_to :user, OpsChat.Accounts.User
 

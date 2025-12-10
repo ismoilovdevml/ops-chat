@@ -6,7 +6,6 @@ defmodule OpsChatWeb.ChatLive do
 
   alias OpsChat.Bot
   alias OpsChat.Chat
-  alias OpsChat.Chat.Channel
 
   @impl true
   def mount(%{"channel" => channel_slug}, session, socket) do
@@ -67,8 +66,8 @@ defmodule OpsChatWeb.ChatLive do
           </h1>
           <p class="text-xs text-base-content/50 mt-1">DevOps Command Center</p>
         </div>
-
-        <!-- Channel List -->
+        
+    <!-- Channel List -->
         <div class="flex-1 overflow-y-auto p-2">
           <!-- General Channels -->
           <div class="mb-4">
@@ -82,8 +81,8 @@ defmodule OpsChatWeb.ChatLive do
               <.channel_item channel={channel} current={@current_channel} />
             <% end %>
           </div>
-
-          <!-- Server Channels -->
+          
+    <!-- Server Channels -->
           <%= if Enum.any?(@channels, &(&1.type == "server")) do %>
             <div class="mb-4">
               <span class="text-xs font-semibold text-base-content/50 uppercase px-2">Serverlar</span>
@@ -93,19 +92,21 @@ defmodule OpsChatWeb.ChatLive do
             </div>
           <% end %>
         </div>
-
-        <!-- User Info -->
+        
+    <!-- User Info -->
         <div class="p-3 border-t border-base-content/10 bg-base-200">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <div class="avatar placeholder">
                 <div class="bg-primary text-primary-content rounded-full w-8">
-                  <span class="text-sm"><%= String.first(@current_user.username) |> String.upcase() %></span>
+                  <span class="text-sm">
+                    {String.first(@current_user.username) |> String.upcase()}
+                  </span>
                 </div>
               </div>
               <div>
-                <div class="font-medium text-sm"><%= @current_user.username %></div>
-                <div class="text-xs text-base-content/50"><%= @current_user.role %></div>
+                <div class="font-medium text-sm">{@current_user.username}</div>
+                <div class="text-xs text-base-content/50">{@current_user.role}</div>
               </div>
             </div>
             <.link href={~p"/logout"} method="delete" class="btn btn-ghost btn-xs">
@@ -114,34 +115,38 @@ defmodule OpsChatWeb.ChatLive do
           </div>
         </div>
       </aside>
-
-      <!-- Main Content -->
+      
+    <!-- Main Content -->
       <main class="flex-1 flex flex-col">
         <!-- Channel Header -->
         <header class="h-14 px-4 flex items-center justify-between border-b border-base-content/10 bg-base-100">
           <div class="flex items-center gap-2">
-            <span class="text-xl"><%= @current_channel && @current_channel.icon %></span>
+            <span class="text-xl">{@current_channel && @current_channel.icon}</span>
             <div>
-              <h2 class="font-semibold"><%= @current_channel && @current_channel.name %></h2>
-              <p class="text-xs text-base-content/50"><%= @current_channel && @current_channel.description %></p>
+              <h2 class="font-semibold">{@current_channel && @current_channel.name}</h2>
+              <p class="text-xs text-base-content/50">
+                {@current_channel && @current_channel.description}
+              </p>
             </div>
           </div>
           <div class="flex items-center gap-2">
             <.link href={~p"/servers"} class="btn btn-ghost btn-sm">
-              <span class="hero-server-stack w-4 h-4"></span>
-              Serverlar
+              <span class="hero-server-stack w-4 h-4"></span> Serverlar
             </.link>
             <%= if @current_user.role == "admin" do %>
               <.link href={~p"/audit"} class="btn btn-ghost btn-sm">
-                <span class="hero-chart-bar w-4 h-4"></span>
-                Audit
+                <span class="hero-chart-bar w-4 h-4"></span> Audit
               </.link>
             <% end %>
           </div>
         </header>
-
-        <!-- Messages -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-base-100" id="messages" phx-hook="ScrollBottom">
+        
+    <!-- Messages -->
+        <div
+          class="flex-1 overflow-y-auto p-4 space-y-4 bg-base-100"
+          id="messages"
+          phx-hook="ScrollBottom"
+        >
           <%= if @show_channel_form do %>
             <.channel_form />
           <% end %>
@@ -152,14 +157,16 @@ defmodule OpsChatWeb.ChatLive do
 
           <%= if Enum.empty?(@messages) do %>
             <div class="text-center py-12 text-base-content/50">
-              <p class="text-4xl mb-2"><%= @current_channel && @current_channel.icon %></p>
-              <p class="font-medium">#{@current_channel && @current_channel.name} kanaliga xush kelibsiz!</p>
+              <p class="text-4xl mb-2">{@current_channel && @current_channel.icon}</p>
+              <p class="font-medium">
+                #{@current_channel && @current_channel.name} kanaliga xush kelibsiz!
+              </p>
               <p class="text-sm mt-1">Bu yerda hali xabarlar yo'q. Birinchi bo'lib yozing!</p>
             </div>
           <% end %>
         </div>
-
-        <!-- Input -->
+        
+    <!-- Input -->
         <div class="p-4 border-t border-base-content/10 bg-base-100">
           <form phx-submit="send_message" class="flex gap-3">
             <input
@@ -190,8 +197,8 @@ defmodule OpsChatWeb.ChatLive do
       patch={~p"/chat/#{@channel.slug}"}
       class={"flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors #{if @current && @current.id == @channel.id, do: "bg-primary/10 text-primary font-medium", else: "hover:bg-base-200 text-base-content/70"}"}
     >
-      <span><%= @channel.icon %></span>
-      <span class="truncate"><%= @channel.name %></span>
+      <span>{@channel.icon}</span>
+      <span class="truncate">{@channel.name}</span>
     </.link>
     """
   end
@@ -202,16 +209,20 @@ defmodule OpsChatWeb.ChatLive do
       <div class="avatar placeholder flex-shrink-0">
         <div class={message_avatar_class(@message.type)}>
           <span class="text-sm">
-            <%= if @message.type == "bot", do: "🤖", else: (@message.user && String.first(@message.user.username) |> String.upcase()) || "?" %>
+            {if @message.type == "bot",
+              do: "🤖",
+              else: (@message.user && String.first(@message.user.username) |> String.upcase()) || "?"}
           </span>
         </div>
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-baseline gap-2">
           <span class={message_username_class(@message.type)}>
-            <%= if @message.type == "bot", do: "Bot", else: (@message.user && @message.user.username) || "System" %>
+            {if @message.type == "bot",
+              do: "Bot",
+              else: (@message.user && @message.user.username) || "System"}
           </span>
-          <span class="text-xs text-base-content/40"><%= format_time(@message.inserted_at) %></span>
+          <span class="text-xs text-base-content/40">{format_time(@message.inserted_at)}</span>
         </div>
         <div class={message_content_class(@message.type)}>
           <pre class="whitespace-pre-wrap font-mono text-sm"><%= @message.content %></pre>
@@ -227,10 +238,24 @@ defmodule OpsChatWeb.ChatLive do
       <div class="card-body p-4">
         <h3 class="font-semibold mb-2">Yangi kanal yaratish</h3>
         <form phx-submit="create_channel" class="flex gap-2">
-          <input type="text" name="name" placeholder="Kanal nomi" class="input input-bordered input-sm flex-1" required />
-          <input type="text" name="icon" placeholder="📌" class="input input-bordered input-sm w-16" value="💬" />
+          <input
+            type="text"
+            name="name"
+            placeholder="Kanal nomi"
+            class="input input-bordered input-sm flex-1"
+            required
+          />
+          <input
+            type="text"
+            name="icon"
+            placeholder="📌"
+            class="input input-bordered input-sm w-16"
+            value="💬"
+          />
           <button type="submit" class="btn btn-primary btn-sm">Yaratish</button>
-          <button type="button" phx-click="toggle_channel_form" class="btn btn-ghost btn-sm">Bekor</button>
+          <button type="button" phx-click="toggle_channel_form" class="btn btn-ghost btn-sm">
+            Bekor
+          </button>
         </form>
       </div>
     </div>
@@ -315,14 +340,15 @@ defmodule OpsChatWeb.ChatLive do
     icon = if icon == "", do: "💬", else: icon
 
     case Chat.create_channel(%{
-      name: name,
-      slug: name |> String.downcase() |> String.replace(~r/[^a-z0-9]/, "-"),
-      icon: icon,
-      type: "custom",
-      user_id: socket.assigns.current_user.id
-    }) do
+           name: name,
+           slug: name |> String.downcase() |> String.replace(~r/[^a-z0-9]/, "-"),
+           icon: icon,
+           type: "custom",
+           user_id: socket.assigns.current_user.id
+         }) do
       {:ok, channel} ->
         channels = Chat.list_channels()
+
         {:noreply,
          socket
          |> assign(:channels, channels)
