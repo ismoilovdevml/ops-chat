@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  ops_chat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ops_chat
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    volumes:
+      # Persist SQLite database
+      - ops_chat_data:/app/data
+      # Mount SSH keys for remote server access (optional)
+      # - ~/.ssh:/home/ops/.ssh:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  ops_chat_data:
+    driver: local

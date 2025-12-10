@@ -66,7 +66,10 @@ defmodule OpsChat.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:bcrypt_elixir, "~> 3.0"}
+      {:bcrypt_elixir, "~> 3.0"},
+      # Dev/Test tools
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -89,7 +92,9 @@ defmodule OpsChat.MixProject do
         "esbuild ops_chat --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],
+      lint: ["format --check-formatted", "credo --strict"],
+      ci: ["deps.get", "compile --warnings-as-errors", "lint", "test"]
     ]
   end
 end

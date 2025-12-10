@@ -17,6 +17,12 @@ defmodule OpsChatWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Health check endpoint (for Docker/K8s)
+  scope "/health", OpsChatWeb do
+    pipe_through :api
+    get "/", HealthController, :index
+  end
+
   # Public routes
   scope "/", OpsChatWeb do
     pipe_through :browser

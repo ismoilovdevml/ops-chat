@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+_build/
+deps/
+*.ez
+
+# Generated on crash
+erl_crash.dump
+
+# Static artifacts
+node_modules/
+
+# Database
+*.db
+*.db-*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Test
+cover/
+.elixir_ls/
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Documentation
+doc/
+*.md
+!README.md
